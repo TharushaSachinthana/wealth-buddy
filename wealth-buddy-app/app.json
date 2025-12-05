@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "Wealth Buddy",
+    "slug": "wealth-buddy",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTabletMode": true
+    },
+    "android": {
+      "package": "com.wealthbuddy"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "scheme": "wealth-buddy",
+    "plugins": [
+      [
+        "expo-sqlite"
+      ]
+    ]
+  }
+}
