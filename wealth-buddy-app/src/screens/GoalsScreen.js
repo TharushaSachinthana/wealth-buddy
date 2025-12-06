@@ -80,7 +80,7 @@ const GoalsScreen = () => {
           </Text>
           <View style={styles.progressContainer}>
             <ProgressBar
-              progress={Math.min(overallProgress, 1)}
+              progress={Math.max(0, Math.min(1, Number(overallProgress) || 0))}
               color="#6200EE"
               style={styles.overallProgress}
             />
@@ -120,7 +120,7 @@ const GoalsScreen = () => {
                   <Button
                     icon="trash-can"
                     mode="text"
-                    compact
+                    compact={true}
                     textColor="#FF6B6B"
                     onPress={() => handleDeleteGoal(goal.id)}
                   />
@@ -136,7 +136,7 @@ const GoalsScreen = () => {
                 </View>
 
                 <ProgressBar
-                  progress={Math.min(progress, 1)}
+                  progress={Math.max(0, Math.min(1, Number(progress) || 0))}
                   color="#4ECDC4"
                   style={styles.goalProgress}
                 />
@@ -174,7 +174,7 @@ const GoalsScreen = () => {
 
       {/* Add Goal Dialog */}
       <Portal>
-        <Dialog visible={newGoalVisible} onDismiss={() => setNewGoalVisible(false)}>
+        <Dialog visible={Boolean(newGoalVisible)} onDismiss={() => setNewGoalVisible(false)}>
           <Dialog.Title>Add New Goal</Dialog.Title>
           <Dialog.Content>
             <TextInput
@@ -204,7 +204,7 @@ const GoalsScreen = () => {
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setNewGoalVisible(false)}>Cancel</Button>
-            <Button onPress={handleAddGoal} loading={loading} disabled={loading}>
+            <Button onPress={handleAddGoal} loading={Boolean(loading)} disabled={Boolean(loading)}>
               Add
             </Button>
           </Dialog.Actions>

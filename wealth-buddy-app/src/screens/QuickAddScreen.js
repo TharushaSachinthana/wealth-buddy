@@ -15,13 +15,13 @@ import { useApp } from '../context/AppContext-v2';
 const CategoryButton = ({ category, selected, onPress }) => {
   return (
     <Button
-      mode={selected ? 'contained' : 'outlined'}
+      mode={selected === true ? 'contained' : 'outlined'}
       onPress={onPress}
       style={styles.categoryButton}
       contentStyle={styles.categoryButtonContent}
-      icon={category.icon}
+      icon={category.icon || undefined}
     >
-      {category.name}
+      {category.name || 'Category'}
     </Button>
   );
 };
@@ -128,7 +128,7 @@ const QuickAddScreen = () => {
               <CategoryButton
                 key={cat.id}
                 category={cat}
-                selected={selectedCategory?.id === cat.id}
+                selected={Boolean(selectedCategory && Number(selectedCategory.id) === Number(cat.id))}
                 onPress={() => setSelectedCategory(cat)}
               />
             ))}
@@ -156,7 +156,7 @@ const QuickAddScreen = () => {
             onChangeText={setNotes}
             mode="outlined"
             style={styles.input}
-            multiline
+            multiline={true}
             numberOfLines={2}
           />
 
@@ -165,8 +165,8 @@ const QuickAddScreen = () => {
             mode="contained"
             onPress={handleAddTransaction}
             style={styles.addButton}
-            loading={loading}
-            disabled={loading}
+            loading={Boolean(loading)}
+            disabled={Boolean(loading)}
           >
             Add Transaction
           </Button>
@@ -175,7 +175,7 @@ const QuickAddScreen = () => {
 
       {/* Success Dialog */}
       <Portal>
-        <Dialog visible={visible} onDismiss={() => setVisible(false)}>
+        <Dialog visible={Boolean(visible)} onDismiss={() => setVisible(false)}>
           <Dialog.Content>
             <View style={styles.dialogContent}>
               <MaterialCommunityIcons

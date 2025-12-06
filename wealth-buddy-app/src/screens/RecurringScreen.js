@@ -7,7 +7,7 @@ const RecurringScreen = () => {
   const { recurring, categories } = useApp();
 
   const getCategoryName = (categoryId) => {
-    const cat = categories.find((c) => c.id === categoryId);
+    const cat = categories.find((c) => Number(c.id) === Number(categoryId));
     return cat ? cat.name : 'Unknown';
   };
 
@@ -39,7 +39,6 @@ const RecurringScreen = () => {
                   </Text>
                 </View>
                 <Chip
-                  icon="cash"
                   style={styles.amountChip}
                   textStyle={styles.amountText}
                 >

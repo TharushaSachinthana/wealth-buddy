@@ -20,10 +20,6 @@
       "favicon": "./assets/favicon.png"
     },
     "scheme": "wealth-buddy",
-    "plugins": [
-      [
-        "expo-sqlite"
-      ]
-    ]
+    "plugins": []
   }
 }

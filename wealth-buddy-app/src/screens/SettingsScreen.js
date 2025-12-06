@@ -137,8 +137,8 @@ const SettingsScreen = () => {
               <Button
                 mode="contained"
                 onPress={handleSaveSettings}
-                loading={loading}
-                disabled={loading}
+                loading={Boolean(loading)}
+                disabled={Boolean(loading)}
                 style={styles.halfButton}
               >
                 Save
@@ -247,7 +247,7 @@ const SettingsScreen = () => {
 
       {/* Add Goal Dialog */}
       <Portal>
-        <Dialog visible={newGoalVisible} onDismiss={() => setNewGoalVisible(false)}>
+        <Dialog visible={Boolean(newGoalVisible)} onDismiss={() => setNewGoalVisible(false)}>
           <Dialog.Title>Add New Goal</Dialog.Title>
           <Dialog.Content>
             <TextInput
@@ -277,7 +277,7 @@ const SettingsScreen = () => {
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setNewGoalVisible(false)}>Cancel</Button>
-            <Button onPress={handleAddGoal} loading={loading} disabled={loading}>
+            <Button onPress={handleAddGoal} loading={Boolean(loading)} disabled={Boolean(loading)}>
               Add
             </Button>
           </Dialog.Actions>

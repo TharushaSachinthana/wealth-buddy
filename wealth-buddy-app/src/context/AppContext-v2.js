@@ -61,7 +61,13 @@ export const AppProvider = ({ children }) => {
       if (userData) {
         const alloc = db.calculateAllocation(userData);
         console.log('✓ Allocation calculated:', alloc);
-        setAllocation(alloc);
+        // Ensure all allocation values are numbers
+        setAllocation({
+          essentials: Number(alloc.essentials) || 0,
+          savings: Number(alloc.savings) || 0,
+          discretionary: Number(alloc.discretionary) || 0,
+          buffer: Number(alloc.buffer) || 0,
+        });
       }
     } catch (error) {
       console.error('❌ Error loading data:', error);
@@ -112,8 +118,9 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const saveGoal = async (name, target, current = 0, deadline = '') => {
+  const saveGoal = async (id, name, target, current = 0, deadline = '') => {
     try {
+      // db.saveGoal uses name-based lookup, so we ignore id parameter
       const success = await db.saveGoal(name, target, current, deadline);
       if (success) await loadAll();
       return success;
@@ -152,14 +159,14 @@ export const AppProvider = ({ children }) => {
   };
 
   const value = {
-    user,
-    transactions,
-    recurring,
-    goals,
-    allocation,
-    categories,
-    currentMonth,
-    loading,
+    user: user || null,
+    transactions: transactions || [],
+    recurring: recurring || [],
+    goals: goals || [],
+    allocation: allocation || { essentials: 0, savings: 0, discretionary: 0, buffer: 0 },
+    categories: categories || [],
+    currentMonth: currentMonth || new Date(),
+    loading: Boolean(loading),
     addTransaction,
     deleteTransaction,
     addRecurring,

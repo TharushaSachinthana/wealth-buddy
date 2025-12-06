@@ -15,7 +15,7 @@ const DashboardScreen = () => {
     loading,
   } = useApp();
 
-  if (loading) {
+  if (Boolean(loading)) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#6200EE" />
@@ -91,7 +91,7 @@ const DashboardScreen = () => {
             </Text>
           </View>
           <ProgressBar
-            progress={essentialsPercent / 100}
+            progress={Math.max(0, Math.min(1, Number(essentialsPercent) / 100))}
             color="#FF6B6B"
             style={styles.progressBar}
           />
@@ -113,7 +113,7 @@ const DashboardScreen = () => {
             </Text>
           </View>
           <ProgressBar
-            progress={savingsPercent / 100}
+            progress={Math.max(0, Math.min(1, Number(savingsPercent) / 100))}
             color="#4ECDC4"
             style={styles.progressBar}
           />
@@ -135,7 +135,7 @@ const DashboardScreen = () => {
             </Text>
           </View>
           <ProgressBar
-            progress={discretionaryPercent / 100}
+            progress={Math.max(0, Math.min(1, Number(discretionaryPercent) / 100))}
             color="#95E1D3"
             style={styles.progressBar}
           />
@@ -157,7 +157,7 @@ const DashboardScreen = () => {
             </Text>
           </View>
           <ProgressBar
-            progress={bufferPercent / 100}
+            progress={Math.max(0, Math.min(1, Number(bufferPercent) / 100))}
             color="#F38181"
             style={styles.progressBar}
           />
@@ -180,7 +180,7 @@ const DashboardScreen = () => {
                     ${goal.current?.toFixed(2)} / ${goal.target?.toFixed(2)}
                   </Text>
                   <ProgressBar
-                    progress={Math.min(progress, 1)}
+                    progress={Math.max(0, Math.min(1, Number(progress) || 0))}
                     color="#6200EE"
                     style={styles.goalProgress}
                   />

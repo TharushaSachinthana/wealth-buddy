@@ -4,7 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import DashboardScreen from '../screens/DashboardScreen-minimal';
-import QuickAddScreen from '../screens/QuickAddScreen-minimal';
+import QuickAddScreen from '../screens/QuickAddScreen';
 import RecurringScreen from '../screens/RecurringScreen-minimal';
 import GoalsScreen from '../screens/GoalsScreen-minimal';
 import SettingsScreen from '../screens/SettingsScreen-minimal';
@@ -115,6 +115,8 @@ export const RootNavigator = () => (
       tabBarActiveTintColor: '#6200EE',
       tabBarInactiveTintColor: '#999',
       headerShown: false,
+      lazy: false,
+      gestureEnabled: true,
     })}
   >
     <Tab.Screen name="Dashboard" component={DashboardStack} />
