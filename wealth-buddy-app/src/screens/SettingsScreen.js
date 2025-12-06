@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet, Alert } from 'react-native';
 import { Card, Text, Button, TextInput, Dialog, Portal } from 'react-native-paper';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/AppContext-v2';
 
 const SettingsScreen = () => {
   const { user, goals, updateSettings, saveGoal } = useApp();

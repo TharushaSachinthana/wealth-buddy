@@ -1,13 +1,22 @@
 import * as SQLite from 'expo-sqlite';
 
-const db = SQLite.openDatabase('wealthbuddy.db');
+let db = null;
+
+// Initialize database
+async function getDb() {
+  if (!db) {
+    db = await SQLite.openDatabaseAsync('wealthbuddy.db');
+  }
+  return db;
+}
 
 /**
  * Run a query with parameters
  */
-function runAsync(sql, params = []) {
+async function runAsync(sql, params = []) {
+  const database = await getDb();
   return new Promise((resolve, reject) => {
-    db.transaction((tx) => {
+    database.transaction((tx) => {
       tx.executeSql(
         sql,
         params,

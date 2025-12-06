@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, ScrollView, StyleSheet } from 'react-native';
 import { Card, Text, Chip } from 'react-native-paper';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/AppContext-v2';
 
 const RecurringScreen = () => {
   const { recurring, categories } = useApp();

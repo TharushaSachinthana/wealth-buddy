@@ -2,7 +2,6 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, StyleSheet } from 'react-native';
-import { AppProvider } from './src/context/AppContext-v2';
 
 const Tab = createBottomTabNavigator();
 
@@ -10,7 +9,7 @@ function DashboardTab() {
   return (
     <View style={styles.container}>
       <Text style={styles.text}>Dashboard Tab</Text>
-      <Text style={styles.text}>If you see this, context works!</Text>
+      <Text style={styles.text}>If you see this, the problem is NOT the screens!</Text>
     </View>
   );
 }
@@ -23,22 +22,14 @@ function SettingsTab() {
   );
 }
 
-function TabNavigator() {
-  return (
-    <Tab.Navigator>
-      <Tab.Screen name="Dashboard" component={DashboardTab} />
-      <Tab.Screen name="Settings" component={SettingsTab} />
-    </Tab.Navigator>
-  );
-}
-
 export default function App() {
   return (
-    <AppProvider>
-      <NavigationContainer>
-        <TabNavigator />
-      </NavigationContainer>
-    </AppProvider>
+    <NavigationContainer>
+      <Tab.Navigator>
+        <Tab.Screen name="Dashboard" component={DashboardTab} />
+        <Tab.Screen name="Settings" component={SettingsTab} />
+      </Tab.Navigator>
+    </NavigationContainer>
   );
 }
 

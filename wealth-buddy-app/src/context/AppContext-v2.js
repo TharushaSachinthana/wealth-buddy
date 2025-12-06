@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import * as db from '../core/simpleDb';
-import { initializeDatabase, seedSampleData } from '../core/simpleDbInit';
+import * as db from '../core/db-v2';
 
 const AppContext = createContext();
 
@@ -14,18 +13,19 @@ export const AppProvider = ({ children }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [loading, setLoading] = useState(true);
 
-  // Initialize database on first load
   useEffect(() => {
     initDb();
   }, []);
 
   const initDb = async () => {
     try {
-      await initializeDatabase();
-      await seedSampleData();
+      console.log('🔄 Initializing database...');
+      await db.initializeSchema();
+      await db.seedSampleData();
+      console.log('✓ Database initialized');
       await loadAll();
     } catch (error) {
-      console.error('Database initialization error:', error);
+      console.error('❌ Database initialization error:', error);
     } finally {
       setLoading(false);
     }
@@ -33,112 +33,122 @@ export const AppProvider = ({ children }) => {
 
   const loadAll = async () => {
     try {
+      console.log('🔄 Loading data...');
+      
       const userData = await db.getUser();
+      console.log('✓ User loaded:', userData);
       setUser(userData);
 
       const cats = await db.getCategories();
+      console.log('✓ Categories loaded:', cats.length);
       setCategories(cats);
 
       const year = currentMonth.getFullYear();
       const month = currentMonth.getMonth() + 1;
 
       const trans = await db.getTransactions(year, month);
+      console.log('✓ Transactions loaded:', trans.length);
       setTransactions(trans);
 
       const rec = await db.getRecurring();
+      console.log('✓ Recurring loaded:', rec.length);
       setRecurring(rec);
 
-      const allGoals = await db.getGoals();
-      setGoals(allGoals);
+      const goalsData = await db.getGoals();
+      console.log('✓ Goals loaded:', goalsData.length);
+      setGoals(goalsData);
 
-      const alloc = await db.calculateAllocation(userData);
-      setAllocation(alloc);
+      if (userData) {
+        const alloc = db.calculateAllocation(userData);
+        console.log('✓ Allocation calculated:', alloc);
+        setAllocation(alloc);
+      }
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error('❌ Error loading data:', error);
     }
   };
 
   const addTransaction = async (categoryId, amount, date, method = 'card', notes = '') => {
     try {
-      await db.addTransaction(categoryId, amount, date, method, notes);
-      await loadAll();
-      return true;
+      const success = await db.addTransaction(categoryId, amount, date, method, notes);
+      if (success) await loadAll();
+      return success;
     } catch (error) {
-      console.error('Error adding transaction:', error);
+      console.error('❌ Error adding transaction:', error);
       return false;
     }
   };
 
   const deleteTransaction = async (id) => {
     try {
-      await db.deleteTransaction(id);
-      await loadAll();
-      return true;
+      const success = await db.deleteTransaction(id);
+      if (success) await loadAll();
+      return success;
     } catch (error) {
-      console.error('Error deleting transaction:', error);
+      console.error('❌ Error deleting transaction:', error);
       return false;
     }
   };
 
   const addRecurring = async (categoryId, amount, frequency, name) => {
     try {
-      await db.addRecurring(categoryId, amount, frequency, name);
-      await loadAll();
-      return true;
+      const success = await db.addRecurring(categoryId, amount, frequency, name);
+      if (success) await loadAll();
+      return success;
     } catch (error) {
-      console.error('Error adding recurring:', error);
+      console.error('❌ Error adding recurring:', error);
       return false;
     }
   };
 
   const deleteRecurring = async (id) => {
     try {
-      await db.deleteRecurring(id);
-      await loadAll();
-      return true;
+      const success = await db.deleteRecurring(id);
+      if (success) await loadAll();
+      return success;
     } catch (error) {
-      console.error('Error deleting recurring:', error);
+      console.error('❌ Error deleting recurring:', error);
       return false;
     }
   };
 
-  const saveGoal = async (id, name, target, current, deadline) => {
+  const saveGoal = async (name, target, current = 0, deadline = '') => {
     try {
-      await db.saveGoal(id, name, target, current, deadline);
-      await loadAll();
-      return true;
+      const success = await db.saveGoal(name, target, current, deadline);
+      if (success) await loadAll();
+      return success;
     } catch (error) {
-      console.error('Error saving goal:', error);
+      console.error('❌ Error saving goal:', error);
       return false;
     }
   };
 
   const deleteGoal = async (id) => {
     try {
-      await db.deleteGoal(id);
-      await loadAll();
-      return true;
+      const success = await db.deleteGoal(id);
+      if (success) await loadAll();
+      return success;
     } catch (error) {
-      console.error('Error deleting goal:', error);
+      console.error('❌ Error deleting goal:', error);
       return false;
     }
   };
 
   const updateSettings = async (name, salary, savingsPercent, bufferPercent) => {
     try {
-      await db.updateUser(name, salary, savingsPercent, bufferPercent);
-      await loadAll();
-      return true;
+      const success = await db.updateUser(name, salary, savingsPercent, bufferPercent);
+      if (success) await loadAll();
+      return success;
     } catch (error) {
-      console.error('Error updating settings:', error);
+      console.error('❌ Error updating settings:', error);
       return false;
     }
   };
 
   const navigateMonth = (offset) => {
-    const newDate = new Date(currentMonth);
-    newDate.setMonth(newDate.getMonth() + offset);
-    setCurrentMonth(newDate);
+    const newMonth = new Date(currentMonth);
+    newMonth.setMonth(newMonth.getMonth() + offset);
+    setCurrentMonth(newMonth);
   };
 
   const value = {

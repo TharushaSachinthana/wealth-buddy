@@ -1,6 +1,14 @@
 import * as SQLite from 'expo-sqlite';
 
-const db = SQLite.openDatabase('wealthbuddy.db');
+let db = null;
+
+// Get or create database instance
+async function getDb() {
+  if (!db) {
+    db = await SQLite.openDatabaseAsync('wealthbuddy.db');
+  }
+  return db;
+}
 
 const schema = `
 -- Users table
@@ -65,8 +73,9 @@ CREATE TABLE IF NOT EXISTS monthly_allocations (
 `;
 
 export async function initializeDatabase() {
+  const database = await getDb();
   return new Promise((resolve, reject) => {
-    db.transaction((tx) => {
+    database.transaction((tx) => {
       // Create tables
       const statements = schema.split(';').filter((s) => s.trim().length > 0);
       statements.forEach((statement) => {
@@ -100,11 +109,13 @@ export async function initializeDatabase() {
       });
     }, reject, resolve);
   });
+
 }
 
 export async function seedSampleData() {
+  const database = await getDb();
   return new Promise((resolve, reject) => {
-    db.transaction((tx) => {
+    database.transaction((tx) => {
       const today = new Date();
       const year = today.getFullYear();
       const month = today.getMonth() + 1;

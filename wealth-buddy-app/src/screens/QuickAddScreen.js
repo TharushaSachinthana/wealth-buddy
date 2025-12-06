@@ -10,7 +10,7 @@ import {
   Text,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/AppContext-v2';
 
 const CategoryButton = ({ category, selected, onPress }) => {
   return (

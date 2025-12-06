@@ -3,11 +3,11 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import DashboardScreen from '../screens/DashboardScreen';
-import QuickAddScreen from '../screens/QuickAddScreen';
-import RecurringScreen from '../screens/RecurringScreen';
-import GoalsScreen from '../screens/GoalsScreen';
-import SettingsScreen from '../screens/SettingsScreen';
+import DashboardScreen from '../screens/DashboardScreen-minimal';
+import QuickAddScreen from '../screens/QuickAddScreen-minimal';
+import RecurringScreen from '../screens/RecurringScreen-minimal';
+import GoalsScreen from '../screens/GoalsScreen-minimal';
+import SettingsScreen from '../screens/SettingsScreen-minimal';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();

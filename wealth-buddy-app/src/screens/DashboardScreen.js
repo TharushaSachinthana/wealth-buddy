@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { Card, Text, Button, ProgressBar, Chip } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/AppContext-v2';
 
 const DashboardScreen = () => {
   const {
