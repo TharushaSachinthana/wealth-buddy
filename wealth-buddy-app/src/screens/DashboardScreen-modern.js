@@ -5,8 +5,9 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext-v2';
 import * as db from '../core/db-v2';
 import { generateMonthlyReportCSV, downloadCSV } from '../utils/csvExport';
+import { colors, spacing, borderRadius, shadows, typography, cardStyles } from '../theme';
 
-// Conditionally import Victory charts - only if react-native-svg is available
+// Conditionally import Victory charts
 let VictoryPie, VictoryChart, VictoryBar, VictoryLine, VictoryTheme, VictoryAxis;
 try {
   const Victory = require('victory-native');
@@ -22,6 +23,17 @@ try {
 
 const { width } = Dimensions.get('window');
 
+// Custom dark theme for Victory charts
+const darkChartTheme = {
+  axis: {
+    style: {
+      axis: { stroke: colors.border.medium },
+      tickLabels: { fill: colors.text.secondary, fontSize: 10 },
+      grid: { stroke: colors.border.light, strokeDasharray: '4,4' },
+    },
+  },
+};
+
 export default function DashboardScreen() {
   const { user, allocation, goals, recurring, transactions, categories, currentMonth, loading, navigateMonth } = useApp();
 
@@ -29,7 +41,7 @@ export default function DashboardScreen() {
   const totalIncome = transactions
     .filter(t => t.amount > 0)
     .reduce((sum, t) => sum + (t.amount || 0), 0);
-  
+
   const totalExpenses = transactions
     .filter(t => t.amount < 0)
     .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
@@ -43,24 +55,24 @@ export default function DashboardScreen() {
 
   // Calculate savings score
   const calculateSavingsScore = () => {
-    if (!user || actualIncome === 0) return { score: 'N/A', color: '#999', message: 'No data', icon: 'help-circle' };
-    
+    if (!user || actualIncome === 0) return { score: 'N/A', color: colors.text.muted, message: 'No data', icon: 'help-circle', percent: 0 };
+
     const expectedSavings = (actualIncome * (user.savingsPercent || 15)) / 100;
     const actualSavings = netAmount > 0 ? netAmount : 0;
     const savingsRatio = expectedSavings > 0 ? (actualSavings / expectedSavings) * 100 : 0;
-    
-    if (savingsRatio >= 100) return { score: 'Excellent', color: '#4ECDC4', message: 'Outstanding!', icon: 'trophy' };
-    if (savingsRatio >= 75) return { score: 'Good', color: '#95E1D3', message: 'Great job!', icon: 'check-circle' };
-    if (savingsRatio >= 50) return { score: 'Fair', color: '#FFD93D', message: 'On track', icon: 'alert-circle' };
-    if (savingsRatio >= 25) return { score: 'Poor', color: '#FF6B6B', message: 'Need improvement', icon: 'alert' };
-    return { score: 'Bad', color: '#C92A2A', message: 'Critical', icon: 'alert-octagon' };
+
+    if (savingsRatio >= 100) return { score: 'Excellent', color: colors.success.main, message: 'Outstanding!', icon: 'trophy', percent: savingsRatio };
+    if (savingsRatio >= 75) return { score: 'Great', color: colors.success.light, message: 'Keep it up!', icon: 'check-circle', percent: savingsRatio };
+    if (savingsRatio >= 50) return { score: 'Good', color: colors.warning.main, message: 'On track', icon: 'alert-circle', percent: savingsRatio };
+    if (savingsRatio >= 25) return { score: 'Fair', color: colors.danger.light, message: 'Need improvement', icon: 'alert', percent: savingsRatio };
+    return { score: 'Low', color: colors.danger.main, message: 'Critical', icon: 'alert-octagon', percent: savingsRatio };
   };
 
   const savingsScore = calculateSavingsScore();
 
   // Find maximum expense
   const expenseTransactions = transactions.filter(t => t.amount < 0);
-  const maxExpense = expenseTransactions.length > 0 
+  const maxExpense = expenseTransactions.length > 0
     ? expenseTransactions.reduce((max, t) => Math.abs(t.amount) > Math.abs(max.amount) ? t : max, expenseTransactions[0])
     : null;
 
@@ -110,8 +122,10 @@ export default function DashboardScreen() {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#6200EE" />
-        <Text style={styles.loadingText}>Loading...</Text>
+        <View style={styles.loadingCard}>
+          <ActivityIndicator size="large" color={colors.primary.main} />
+          <Text style={styles.loadingText}>Loading your finances...</Text>
+        </View>
       </View>
     );
   }
@@ -126,10 +140,10 @@ export default function DashboardScreen() {
       const year = currentMonth.getFullYear();
       const month = currentMonth.getMonth() + 1;
       const allTransactions = await db.getAllTransactionsForMonth(year, month);
-      
+
       const csvContent = generateMonthlyReportCSV(allTransactions, categories, user, year, month);
       const filename = `Monthly_Report_${year}_${String(month).padStart(2, '0')}.csv`;
-      
+
       const success = downloadCSV(csvContent, filename);
       if (success) {
         Alert.alert('Success', 'Monthly report downloaded successfully!');
@@ -149,60 +163,82 @@ export default function DashboardScreen() {
         <View style={styles.headerContent}>
           <View>
             <Text style={styles.greeting}>Welcome back,</Text>
-            <Text style={styles.userName}>{user?.name || 'User'}</Text>
+            <Text style={styles.userName}>{user?.name || 'User'} 👋</Text>
           </View>
           <View style={styles.monthNav}>
             <IconButton
               icon="chevron-left"
-              size={24}
-              iconColor="#fff"
+              size={22}
+              iconColor={colors.text.primary}
               onPress={() => navigateMonth(-1)}
+              style={styles.monthButton}
             />
             <Text style={styles.monthText}>{monthString}</Text>
             <IconButton
               icon="chevron-right"
-              size={24}
-              iconColor="#fff"
+              size={22}
+              iconColor={colors.text.primary}
               onPress={() => navigateMonth(1)}
+              style={styles.monthButton}
             />
           </View>
         </View>
       </View>
 
       {/* Summary Cards */}
-      <View style={styles.summaryRow}>
-        <View style={[styles.summaryCard, { backgroundColor: '#4ECDC4' }]}>
-          <MaterialCommunityIcons name="arrow-up" size={24} color="#fff" />
-          <Text style={styles.summaryLabel}>Income</Text>
-          <Text style={styles.summaryAmount}>
-            Rs. {totalIncome.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-          </Text>
+      <View style={styles.summaryContainer}>
+        <View style={styles.summaryRow}>
+          <View style={[styles.summaryCard, styles.incomeCard]}>
+            <View style={styles.summaryIconContainer}>
+              <MaterialCommunityIcons name="trending-up" size={24} color={colors.success.main} />
+            </View>
+            <Text style={styles.summaryLabel}>Income</Text>
+            <Text style={[styles.summaryAmount, { color: colors.success.main }]}>
+              Rs. {totalIncome.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+            </Text>
+          </View>
+          <View style={[styles.summaryCard, styles.expenseCard]}>
+            <View style={styles.summaryIconContainer}>
+              <MaterialCommunityIcons name="trending-down" size={24} color={colors.danger.main} />
+            </View>
+            <Text style={styles.summaryLabel}>Expenses</Text>
+            <Text style={[styles.summaryAmount, { color: colors.danger.main }]}>
+              Rs. {totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+            </Text>
+          </View>
         </View>
-        <View style={[styles.summaryCard, { backgroundColor: '#FF6B6B' }]}>
-          <MaterialCommunityIcons name="arrow-down" size={24} color="#fff" />
-          <Text style={styles.summaryLabel}>Expenses</Text>
-          <Text style={styles.summaryAmount}>
-            Rs. {totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-          </Text>
-        </View>
-      </View>
 
-      <View style={styles.summaryRow}>
-        <View style={[styles.summaryCard, { backgroundColor: netAmount >= 0 ? '#95E1D3' : '#F38181', flex: 1 }]}>
-          <MaterialCommunityIcons name={netAmount >= 0 ? 'trending-up' : 'trending-down'} size={24} color="#fff" />
-          <Text style={styles.summaryLabel}>Net</Text>
-          <Text style={styles.summaryAmount}>
-            Rs. {Math.abs(netAmount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-          </Text>
+        {/* Net Balance Card */}
+        <View style={[styles.netCard, netAmount >= 0 ? styles.netPositive : styles.netNegative]}>
+          <View style={styles.netContent}>
+            <View>
+              <Text style={styles.netLabel}>Net Balance</Text>
+              <Text style={[styles.netAmount, { color: netAmount >= 0 ? colors.success.main : colors.danger.main }]}>
+                {netAmount >= 0 ? '+' : '-'} Rs. {Math.abs(netAmount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              </Text>
+            </View>
+            <View style={[styles.netIcon, { backgroundColor: netAmount >= 0 ? colors.success.glow : colors.danger.glow }]}>
+              <MaterialCommunityIcons
+                name={netAmount >= 0 ? 'arrow-up-circle' : 'arrow-down-circle'}
+                size={32}
+                color={netAmount >= 0 ? colors.success.main : colors.danger.main}
+              />
+            </View>
+          </View>
         </View>
       </View>
 
       {/* Savings Score Card */}
       <View style={styles.glassCard}>
-        <View style={styles.scoreHeader}>
-          <MaterialCommunityIcons name={savingsScore.icon} size={32} color={savingsScore.color} />
+        <View style={styles.scoreContainer}>
+          <View style={[styles.scoreCircle, { borderColor: savingsScore.color }]}>
+            <MaterialCommunityIcons name={savingsScore.icon} size={28} color={savingsScore.color} />
+            <Text style={[styles.scorePercent, { color: savingsScore.color }]}>
+              {Math.min(savingsScore.percent, 100).toFixed(0)}%
+            </Text>
+          </View>
           <View style={styles.scoreInfo}>
-            <Text style={styles.scoreLabel}>Savings Score</Text>
+            <Text style={styles.scoreTitle}>Savings Score</Text>
             <Text style={[styles.scoreValue, { color: savingsScore.color }]}>{savingsScore.score}</Text>
             <Text style={styles.scoreMessage}>{savingsScore.message}</Text>
           </View>
@@ -218,29 +254,34 @@ export default function DashboardScreen() {
               {pieData.length > 0 && VictoryPie ? (
                 <VictoryPie
                   data={pieData}
-                  height={250}
-                  colorScale={['#4ECDC4', '#95E1D3', '#FFD93D', '#FF6B6B', '#F38181', '#C92A2A', '#6200EE']}
+                  height={260}
+                  innerRadius={50}
+                  padAngle={2}
+                  colorScale={[colors.primary.main, colors.success.main, colors.warning.main, colors.danger.main, colors.accent.purple, colors.accent.pink]}
                   style={{
                     labels: {
                       fontSize: 10,
-                      fill: '#333',
+                      fill: colors.text.primary,
                     },
                   }}
-                  labelRadius={({ innerRadius }) => innerRadius + 30}
+                  labelRadius={({ innerRadius }) => innerRadius + 35}
                 />
               ) : (
                 <View style={styles.fallbackChart}>
                   {Object.entries(expensesByCategory).map(([name, amount], index) => {
                     const percentage = (amount / totalExpenses) * 100;
-                    const colors = ['#4ECDC4', '#95E1D3', '#FFD93D', '#FF6B6B', '#F38181', '#C92A2A', '#6200EE'];
+                    const chartColors = [colors.primary.main, colors.success.main, colors.warning.main, colors.danger.main, colors.accent.purple];
                     return (
                       <View key={name} style={styles.categoryBar}>
                         <View style={styles.categoryBarHeader}>
-                          <Text style={styles.categoryName}>{name}</Text>
+                          <View style={styles.categoryNameRow}>
+                            <View style={[styles.categoryDot, { backgroundColor: chartColors[index % chartColors.length] }]} />
+                            <Text style={styles.categoryName}>{name}</Text>
+                          </View>
                           <Text style={styles.categoryAmount}>Rs. {amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</Text>
                         </View>
                         <View style={styles.categoryBarContainer}>
-                          <View style={[styles.categoryBarFill, { width: `${percentage}%`, backgroundColor: colors[index % colors.length] }]} />
+                          <View style={[styles.categoryBarFill, { width: `${percentage}%`, backgroundColor: chartColors[index % chartColors.length] }]} />
                         </View>
                         <Text style={styles.categoryPercent}>{percentage.toFixed(1)}%</Text>
                       </View>
@@ -251,112 +292,56 @@ export default function DashboardScreen() {
             </View>
           </View>
 
-          {categoryChartData.length > 0 && (
-            <View style={styles.glassCard}>
-              <Text style={styles.sectionTitle}>Category Breakdown</Text>
-              <View style={styles.chartContainer}>
-                {VictoryChart && VictoryBar ? (
-                  <VictoryChart
-                    theme={VictoryTheme.material}
-                    height={200}
-                    padding={{ left: 60, right: 20, top: 20, bottom: 40 }}
-                  >
-                    <VictoryAxis
-                      style={{
-                        axis: { stroke: '#999' },
-                        tickLabels: { fill: '#666', fontSize: 10 },
-                      }}
-                    />
-                    <VictoryAxis
-                      dependentAxis
-                      style={{
-                        axis: { stroke: '#999' },
-                        tickLabels: { fill: '#666', fontSize: 10 },
-                      }}
-                    />
-                    <VictoryBar
-                      data={categoryChartData}
-                      style={{
-                        data: {
-                          fill: '#4ECDC4',
-                        },
-                      }}
-                      cornerRadius={{ top: 8 }}
-                    />
-                  </VictoryChart>
-                ) : (
-                  <View style={styles.fallbackChart}>
-                    {categoryChartData.map((item, index) => {
-                      const maxValue = Math.max(...categoryChartData.map(d => d.y));
-                      const barHeight = (item.y / maxValue) * 150;
-                      return (
-                        <View key={item.x} style={styles.barChartItem}>
-                          <View style={styles.barContainer}>
-                            <View style={[styles.bar, { height: barHeight, backgroundColor: '#4ECDC4' }]} />
-                          </View>
-                          <Text style={styles.barLabel}>{item.x}</Text>
-                          <Text style={styles.barValue}>Rs. {(item.y / 1000).toFixed(1)}k</Text>
-                        </View>
-                      );
-                    })}
-                  </View>
-                )}
-              </View>
-            </View>
-          )}
-
           {last7Days.some(d => d.y > 0) && (
             <View style={styles.glassCard}>
               <Text style={styles.sectionTitle}>7-Day Spending Trend</Text>
               <View style={styles.chartContainer}>
-                {VictoryChart && VictoryLine ? (
+                {VictoryChart && VictoryBar ? (
                   <VictoryChart
-                    theme={VictoryTheme.material}
                     height={200}
                     padding={{ left: 50, right: 20, top: 20, bottom: 40 }}
                   >
                     <VictoryAxis
                       style={{
-                        axis: { stroke: '#999' },
-                        tickLabels: { fill: '#666', fontSize: 10 },
+                        axis: { stroke: colors.border.medium },
+                        tickLabels: { fill: colors.text.secondary, fontSize: 10 },
                       }}
                     />
                     <VictoryAxis
                       dependentAxis
                       style={{
-                        axis: { stroke: '#999' },
-                        tickLabels: { fill: '#666', fontSize: 10 },
+                        axis: { stroke: colors.border.medium },
+                        tickLabels: { fill: colors.text.secondary, fontSize: 10 },
                       }}
                     />
-                    <VictoryLine
+                    <VictoryBar
                       data={last7Days}
                       style={{
                         data: {
-                          stroke: '#4ECDC4',
-                          strokeWidth: 3,
+                          fill: colors.primary.main,
+                          fillOpacity: 0.8,
                         },
                       }}
-                      animate={{
-                        duration: 1000,
-                        onLoad: { duration: 1000 },
-                      }}
+                      cornerRadius={{ top: 6 }}
                     />
                   </VictoryChart>
                 ) : (
-                  <View style={styles.fallbackChart}>
-                    <View style={styles.lineChartContainer}>
-                      {last7Days.map((day, index) => {
-                        const maxValue = Math.max(...last7Days.map(d => d.y));
-                        const height = maxValue > 0 ? (day.y / maxValue) * 150 : 0;
-                        return (
-                          <View key={index} style={styles.lineChartItem}>
-                            <View style={[styles.lineChartBar, { height: height || 5, backgroundColor: '#4ECDC4' }]} />
-                            <Text style={styles.lineChartLabel}>{day.x}</Text>
-                            <Text style={styles.lineChartValue}>Rs. {day.y.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</Text>
+                  <View style={styles.trendChart}>
+                    {last7Days.map((day, index) => {
+                      const maxValue = Math.max(...last7Days.map(d => d.y), 1);
+                      const height = (day.y / maxValue) * 100;
+                      return (
+                        <View key={index} style={styles.trendItem}>
+                          <View style={styles.trendBarContainer}>
+                            <View style={[styles.trendBar, { height: `${height}%` }]} />
                           </View>
-                        );
-                      })}
-                    </View>
+                          <Text style={styles.trendLabel}>{day.x}</Text>
+                          <Text style={styles.trendValue}>
+                            {day.y > 0 ? `${(day.y / 1000).toFixed(1)}k` : '-'}
+                          </Text>
+                        </View>
+                      );
+                    })}
                   </View>
                 )}
               </View>
@@ -369,59 +354,27 @@ export default function DashboardScreen() {
       {allocationData.length > 0 && (
         <View style={styles.glassCard}>
           <Text style={styles.sectionTitle}>Budget Allocation</Text>
-          <View style={styles.chartContainer}>
-            {VictoryChart && VictoryBar ? (
-              <VictoryChart
-                theme={VictoryTheme.material}
-                height={200}
-                padding={{ left: 60, right: 20, top: 20, bottom: 40 }}
-              >
-                <VictoryAxis
-                  style={{
-                    axis: { stroke: '#999' },
-                    tickLabels: { fill: '#666', fontSize: 10 },
-                  }}
-                />
-                <VictoryAxis
-                  dependentAxis
-                  style={{
-                    axis: { stroke: '#999' },
-                    tickLabels: { fill: '#666', fontSize: 10 },
-                  }}
-                />
-                <VictoryBar
-                  data={allocationData}
-                  style={{
-                    data: {
-                      fill: ({ datum }) => {
-                        if (datum.x === 'Essentials') return '#FF6B6B';
-                        if (datum.x === 'Savings') return '#4ECDC4';
-                        if (datum.x === 'Discretionary') return '#95E1D3';
-                        return '#FFD93D';
-                      },
-                    },
-                  }}
-                  cornerRadius={{ top: 8 }}
-                />
-              </VictoryChart>
-            ) : (
-              <View style={styles.fallbackChart}>
-                {allocationData.map((item, index) => {
-                  const maxValue = Math.max(...allocationData.map(d => d.y));
-                  const barHeight = maxValue > 0 ? (item.y / maxValue) * 150 : 0;
-                  const colors = { 'Essentials': '#FF6B6B', 'Savings': '#4ECDC4', 'Discretionary': '#95E1D3', 'Buffer': '#FFD93D' };
-                  return (
-                    <View key={item.x} style={styles.barChartItem}>
-                      <View style={styles.barContainer}>
-                        <View style={[styles.bar, { height: barHeight, backgroundColor: colors[item.x] || '#4ECDC4' }]} />
-                      </View>
-                      <Text style={styles.barLabel}>{item.x}</Text>
-                      <Text style={styles.barValue}>Rs. {item.y.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</Text>
-                    </View>
-                  );
-                })}
-              </View>
-            )}
+          <View style={styles.allocationGrid}>
+            {allocationData.map((item, index) => {
+              const iconMap = {
+                'Essentials': { icon: 'home', color: colors.danger.main },
+                'Savings': { icon: 'piggy-bank', color: colors.success.main },
+                'Discretionary': { icon: 'shopping', color: colors.primary.main },
+                'Buffer': { icon: 'shield-check', color: colors.warning.main },
+              };
+              const config = iconMap[item.x] || { icon: 'cash', color: colors.text.muted };
+              return (
+                <View key={item.x} style={styles.allocationItem}>
+                  <View style={[styles.allocationIcon, { backgroundColor: `${config.color}20` }]}>
+                    <MaterialCommunityIcons name={config.icon} size={24} color={config.color} />
+                  </View>
+                  <Text style={styles.allocationLabel}>{item.x}</Text>
+                  <Text style={[styles.allocationValue, { color: config.color }]}>
+                    Rs. {item.y.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                  </Text>
+                </View>
+              );
+            })}
           </View>
         </View>
       )}
@@ -431,17 +384,23 @@ export default function DashboardScreen() {
         <Text style={styles.sectionTitle}>Quick Stats</Text>
         <View style={styles.statsGrid}>
           <View style={styles.statItem}>
-            <MaterialCommunityIcons name="wallet" size={24} color="#4ECDC4" />
+            <View style={[styles.statIcon, { backgroundColor: colors.primary.glow }]}>
+              <MaterialCommunityIcons name="swap-horizontal" size={20} color={colors.primary.main} />
+            </View>
             <Text style={styles.statValue}>{transactions.length}</Text>
             <Text style={styles.statLabel}>Transactions</Text>
           </View>
           <View style={styles.statItem}>
-            <MaterialCommunityIcons name="repeat" size={24} color="#95E1D3" />
+            <View style={[styles.statIcon, { backgroundColor: colors.accent.purple + '30' }]}>
+              <MaterialCommunityIcons name="repeat" size={20} color={colors.accent.purple} />
+            </View>
             <Text style={styles.statValue}>{recurring.length}</Text>
             <Text style={styles.statLabel}>Recurring</Text>
           </View>
           <View style={styles.statItem}>
-            <MaterialCommunityIcons name="target" size={24} color="#FFD93D" />
+            <View style={[styles.statIcon, { backgroundColor: colors.warning.glow }]}>
+              <MaterialCommunityIcons name="trophy" size={20} color={colors.warning.main} />
+            </View>
             <Text style={styles.statValue}>{goals.length}</Text>
             <Text style={styles.statLabel}>Goals</Text>
           </View>
@@ -449,17 +408,12 @@ export default function DashboardScreen() {
       </View>
 
       {/* Download Button */}
-      <View style={styles.glassCard}>
-        <Button
-          mode="contained"
-          onPress={handleDownloadReport}
-          icon="download"
-          style={styles.downloadButton}
-          labelStyle={styles.downloadButtonLabel}
-        >
-          Download Monthly Report
-        </Button>
-      </View>
+      <TouchableOpacity style={styles.downloadButton} onPress={handleDownloadReport} activeOpacity={0.8}>
+        <MaterialCommunityIcons name="download" size={20} color={colors.text.primary} />
+        <Text style={styles.downloadButtonText}>Download Monthly Report</Text>
+      </TouchableOpacity>
+
+      <View style={{ height: 32 }} />
     </ScrollView>
   );
 }
@@ -467,21 +421,33 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f4f8',
+    backgroundColor: colors.background.primary,
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f0f4f8',
+    backgroundColor: colors.background.primary,
+  },
+  loadingCard: {
+    ...cardStyles.glass,
+    alignItems: 'center',
+    padding: spacing.xxxl,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: colors.text.secondary,
+    marginTop: spacing.lg,
   },
   header: {
-    backgroundColor: '#667eea',
-    paddingTop: 20,
-    paddingBottom: 30,
-    paddingHorizontal: 20,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    backgroundColor: colors.background.secondary,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xxxl,
+    paddingHorizontal: spacing.xl,
+    borderBottomLeftRadius: borderRadius.xxl,
+    borderBottomRightRadius: borderRadius.xxl,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.light,
   },
   headerContent: {
     flexDirection: 'row',
@@ -490,166 +456,197 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: colors.text.secondary,
     marginBottom: 4,
   },
   userName: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: '700',
+    color: colors.text.primary,
   },
   monthNav: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 20,
-    paddingHorizontal: 8,
+    backgroundColor: colors.background.tertiary,
+    borderRadius: borderRadius.xl,
+    paddingHorizontal: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+  },
+  monthButton: {
+    margin: 0,
   },
   monthText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
-    marginHorizontal: 8,
+    color: colors.text.primary,
+    marginHorizontal: spacing.sm,
+  },
+  summaryContainer: {
+    paddingHorizontal: spacing.lg,
+    marginTop: -spacing.xl,
   },
   summaryRow: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
-    marginTop: -15,
-    marginBottom: 16,
-    gap: 12,
+    gap: spacing.md,
+    marginBottom: spacing.md,
   },
   summaryCard: {
     flex: 1,
-    padding: 20,
+    ...cardStyles.glass,
+    padding: spacing.lg,
+  },
+  incomeCard: {
+    borderLeftWidth: 3,
+    borderLeftColor: colors.success.main,
+  },
+  expenseCard: {
+    borderLeftWidth: 3,
+    borderLeftColor: colors.danger.main,
+  },
+  summaryIconContainer: {
+    width: 40,
+    height: 40,
     borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
+    backgroundColor: colors.background.tertiary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
   },
   summaryLabel: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginTop: 8,
+    color: colors.text.secondary,
     marginBottom: 4,
   },
   summaryAmount: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  netCard: {
+    ...cardStyles.glass,
+    marginTop: spacing.sm,
+    borderWidth: 1,
+  },
+  netPositive: {
+    borderColor: colors.success.main + '40',
+    backgroundColor: colors.success.main + '10',
+  },
+  netNegative: {
+    borderColor: colors.danger.main + '40',
+    backgroundColor: colors.danger.main + '10',
+  },
+  netContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  netLabel: {
+    fontSize: 14,
+    color: colors.text.secondary,
+    marginBottom: 4,
+  },
+  netAmount: {
+    fontSize: 28,
+    fontWeight: '800',
+  },
+  netIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   glassCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 20,
-    padding: 20,
-    marginHorizontal: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
+    ...cardStyles.glass,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
   },
-  scoreHeader: {
+  scoreContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  scoreCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 3,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background.tertiary,
+  },
+  scorePercent: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 2,
+  },
   scoreInfo: {
-    marginLeft: 16,
+    marginLeft: spacing.xl,
     flex: 1,
   },
-  scoreLabel: {
+  scoreTitle: {
     fontSize: 14,
-    color: '#666',
+    color: colors.text.secondary,
     marginBottom: 4,
   },
   scoreValue: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: '800',
     marginBottom: 4,
   },
   scoreMessage: {
     fontSize: 14,
-    color: '#999',
+    color: colors.text.muted,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 16,
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text.primary,
+    marginBottom: spacing.lg,
   },
   chartContainer: {
     alignItems: 'center',
-    backgroundColor: '#f9f9f9',
-    borderRadius: 12,
-    padding: 8,
+    backgroundColor: colors.background.tertiary,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
     minHeight: 200,
     justifyContent: 'center',
   },
-  noDataText: {
-    fontSize: 14,
-    color: '#999',
-    textAlign: 'center',
-    padding: 40,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#666',
-  },
-  downloadButton: {
-    borderRadius: 12,
-    paddingVertical: 8,
-  },
-  downloadButtonLabel: {
-    fontSize: 14,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 12,
-  },
   fallbackChart: {
     width: '100%',
-    padding: 16,
+    padding: spacing.md,
   },
   categoryBar: {
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   categoryBarHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  categoryNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  categoryDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: spacing.sm,
   },
   categoryName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: colors.text.primary,
   },
   categoryAmount: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
+    color: colors.text.secondary,
   },
   categoryBarContainer: {
     height: 8,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: colors.background.primary,
     borderRadius: 4,
     overflow: 'hidden',
     marginBottom: 4,
@@ -660,56 +657,112 @@ const styles = StyleSheet.create({
   },
   categoryPercent: {
     fontSize: 12,
-    color: '#999',
+    color: colors.text.muted,
   },
-  barChartItem: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  barContainer: {
-    height: 150,
-    width: 40,
-    justifyContent: 'flex-end',
-    marginBottom: 8,
-  },
-  bar: {
-    width: '100%',
-    borderRadius: 4,
-    minHeight: 4,
-  },
-  barLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 4,
-  },
-  barValue: {
-    fontSize: 10,
-    color: '#999',
-  },
-  lineChartContainer: {
+  trendChart: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     alignItems: 'flex-end',
-    height: 180,
+    height: 150,
+    width: '100%',
+    paddingHorizontal: spacing.sm,
   },
-  lineChartItem: {
+  trendItem: {
     alignItems: 'center',
     flex: 1,
   },
-  lineChartBar: {
-    width: 30,
-    borderRadius: 4,
-    marginBottom: 8,
+  trendBarContainer: {
+    height: 100,
+    width: 24,
+    backgroundColor: colors.background.primary,
+    borderRadius: borderRadius.sm,
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+    marginBottom: spacing.sm,
+  },
+  trendBar: {
+    width: '100%',
+    backgroundColor: colors.primary.main,
+    borderRadius: borderRadius.sm,
     minHeight: 4,
   },
-  lineChartLabel: {
+  trendLabel: {
     fontSize: 10,
-    color: '#666',
+    color: colors.text.secondary,
+    marginBottom: 2,
+  },
+  trendValue: {
+    fontSize: 9,
+    color: colors.text.muted,
+  },
+  allocationGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -spacing.sm,
+  },
+  allocationItem: {
+    width: '50%',
+    paddingHorizontal: spacing.sm,
+    marginBottom: spacing.lg,
+    alignItems: 'center',
+  },
+  allocationIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  allocationLabel: {
+    fontSize: 12,
+    color: colors.text.secondary,
     marginBottom: 4,
   },
-  lineChartValue: {
-    fontSize: 9,
-    color: '#999',
+  allocationValue: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.text.primary,
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: colors.text.muted,
+  },
+  downloadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary.main,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    paddingVertical: spacing.lg,
+    borderRadius: borderRadius.lg,
+    ...shadows.glow(colors.primary.main),
+  },
+  downloadButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text.primary,
+    marginLeft: spacing.sm,
   },
 });
-

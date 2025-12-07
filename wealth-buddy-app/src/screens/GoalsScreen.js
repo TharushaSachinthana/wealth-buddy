@@ -1,19 +1,9 @@
 import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet, Text, Alert, TouchableOpacity } from 'react-native';
-import { Card, Button, TextInput, Dialog, Portal, IconButton } from 'react-native-paper';
+import { TextInput, Dialog, Portal, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext-v2';
-// Conditionally import Victory charts
-let VictoryPie, VictoryChart, VictoryBar, VictoryTheme;
-try {
-  const Victory = require('victory-native');
-  VictoryPie = Victory.VictoryPie;
-  VictoryChart = Victory.VictoryChart;
-  VictoryBar = Victory.VictoryBar;
-  VictoryTheme = Victory.VictoryTheme;
-} catch (e) {
-  console.warn('Victory charts not available, using fallback UI');
-}
+import { colors, spacing, borderRadius, shadows, cardStyles } from '../theme';
 
 export default function GoalsScreen() {
   const { goals, saveGoal, deleteGoal } = useApp();
@@ -126,204 +116,173 @@ export default function GoalsScreen() {
     );
   };
 
-  // Prepare chart data
-  const chartData = goals.map((goal, index) => ({
-    x: goal.name.length > 10 ? goal.name.substring(0, 10) + '...' : goal.name,
-    y: goal.target > 0 ? ((goal.current / goal.target) * 100) : 0,
-    label: `${((goal.current / goal.target) * 100).toFixed(0)}%`,
-  }));
-
-  const pieData = goals.map((goal) => ({
-    x: goal.name,
-    y: goal.target,
-    label: `${goal.name}\nRs. ${(goal.target || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
-  }));
+  const getProgressColor = (progress) => {
+    if (progress >= 100) return colors.success.main;
+    if (progress >= 75) return colors.success.light;
+    if (progress >= 50) return colors.warning.main;
+    if (progress >= 25) return colors.warning.light;
+    return colors.danger.main;
+  };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Overall Progress Card */}
-      <View style={styles.glassCard}>
+      <View style={styles.progressCard}>
         <View style={styles.progressHeader}>
-          <View>
-            <Text style={styles.progressLabel}>Overall Progress</Text>
+          <View style={styles.progressInfo}>
+            <Text style={styles.progressTitle}>Overall Progress</Text>
             <Text style={styles.progressAmount}>
-              Rs. {totalCurrent.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              Rs. {totalCurrent.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </Text>
             <Text style={styles.progressTarget}>
-              of Rs. {totalTarget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              of Rs. {totalTarget.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} target
             </Text>
           </View>
-          <View style={styles.progressCircle}>
-            <Text style={styles.progressPercent}>{overallProgress.toFixed(0)}%</Text>
+          <View style={styles.progressRing}>
+            <View style={[styles.progressRingFill, { borderColor: getProgressColor(overallProgress) }]}>
+              <Text style={[styles.progressPercent, { color: getProgressColor(overallProgress) }]}>
+                {overallProgress.toFixed(0)}%
+              </Text>
+            </View>
           </View>
         </View>
         <View style={styles.progressBarContainer}>
-          <View style={[styles.progressBar, { width: `${Math.min(overallProgress, 100)}%` }]} />
+          <View
+            style={[
+              styles.progressBar,
+              { width: `${Math.min(overallProgress, 100)}%`, backgroundColor: getProgressColor(overallProgress) }
+            ]}
+          />
         </View>
       </View>
 
-      {/* Charts Section */}
-      {goals.length > 0 && (
-        <>
-          <View style={styles.glassCard}>
-            <Text style={styles.sectionTitle}>Goals Progress</Text>
-            <View style={styles.chartContainer}>
-              {VictoryChart && VictoryBar ? (
-                <VictoryChart
-                  theme={VictoryTheme.material}
-                  height={200}
-                  padding={{ left: 50, right: 20, top: 20, bottom: 40 }}
-                >
-                  <VictoryBar
-                    data={chartData}
-                    style={{
-                      data: {
-                        fill: ({ datum }) => {
-                          const progress = datum.y;
-                          if (progress >= 75) return '#4ECDC4';
-                          if (progress >= 50) return '#95E1D3';
-                          if (progress >= 25) return '#FFD93D';
-                          return '#FF6B6B';
-                        },
-                      },
-                    }}
-                    cornerRadius={{ top: 8 }}
-                  />
-                </VictoryChart>
-              ) : (
-                <View style={styles.fallbackChart}>
-                  {goals.map((goal, index) => {
-                    const progress = goal.target > 0 ? ((goal.current / goal.target) * 100) : 0;
-                    const colors = ['#4ECDC4', '#95E1D3', '#FFD93D', '#FF6B6B'];
-                    const color = progress >= 75 ? colors[0] : progress >= 50 ? colors[1] : progress >= 25 ? colors[2] : colors[3];
-                    return (
-                      <View key={goal.id} style={styles.goalProgressBar}>
-                        <View style={styles.goalProgressHeader}>
-                          <Text style={styles.goalProgressName}>{goal.name}</Text>
-                          <Text style={styles.goalProgressPercent}>{progress.toFixed(0)}%</Text>
-                        </View>
-                        <View style={styles.goalProgressBarContainer}>
-                          <View style={[styles.goalProgressBarFill, { width: `${Math.min(progress, 100)}%`, backgroundColor: color }]} />
-                        </View>
-                      </View>
-                    );
-                  })}
-                </View>
-              )}
-            </View>
+      {/* Goals Summary */}
+      <View style={styles.summaryRow}>
+        <View style={styles.summaryItem}>
+          <View style={[styles.summaryIcon, { backgroundColor: colors.warning.main + '20' }]}>
+            <MaterialCommunityIcons name="trophy" size={20} color={colors.warning.main} />
           </View>
+          <Text style={styles.summaryValue}>{goals.length}</Text>
+          <Text style={styles.summaryLabel}>Total Goals</Text>
+        </View>
+        <View style={styles.summaryItem}>
+          <View style={[styles.summaryIcon, { backgroundColor: colors.success.main + '20' }]}>
+            <MaterialCommunityIcons name="check-circle" size={20} color={colors.success.main} />
+          </View>
+          <Text style={styles.summaryValue}>{goals.filter(g => (g.current / g.target) >= 1).length}</Text>
+          <Text style={styles.summaryLabel}>Completed</Text>
+        </View>
+        <View style={styles.summaryItem}>
+          <View style={[styles.summaryIcon, { backgroundColor: colors.primary.main + '20' }]}>
+            <MaterialCommunityIcons name="progress-check" size={20} color={colors.primary.main} />
+          </View>
+          <Text style={styles.summaryValue}>{goals.filter(g => (g.current / g.target) < 1).length}</Text>
+          <Text style={styles.summaryLabel}>In Progress</Text>
+        </View>
+      </View>
 
-          <View style={styles.glassCard}>
-            <Text style={styles.sectionTitle}>Goals Distribution</Text>
-            <View style={styles.chartContainer}>
-              {VictoryPie ? (
-                <VictoryPie
-                  data={pieData}
-                  height={250}
-                  colorScale={['#4ECDC4', '#95E1D3', '#FFD93D', '#FF6B6B', '#F38181', '#C92A2A']}
-                  style={{
-                    labels: {
-                      fontSize: 10,
-                      fill: '#333',
-                    },
-                  }}
-                />
-              ) : (
-                <View style={styles.fallbackChart}>
-                  {goals.map((goal, index) => {
-                    const percentage = totalTarget > 0 ? (goal.target / totalTarget) * 100 : 0;
-                    const colors = ['#4ECDC4', '#95E1D3', '#FFD93D', '#FF6B6B', '#F38181', '#C92A2A'];
-                    return (
-                      <View key={goal.id} style={styles.goalDistributionItem}>
-                        <View style={styles.goalDistributionHeader}>
-                          <View style={[styles.goalDistributionColor, { backgroundColor: colors[index % colors.length] }]} />
-                          <Text style={styles.goalDistributionName}>{goal.name}</Text>
-                          <Text style={styles.goalDistributionAmount}>Rs. {goal.target.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</Text>
-                        </View>
-                        <View style={styles.goalDistributionBarContainer}>
-                          <View style={[styles.goalDistributionBarFill, { width: `${percentage}%`, backgroundColor: colors[index % colors.length] }]} />
-                        </View>
-                        <Text style={styles.goalDistributionPercent}>{percentage.toFixed(1)}% of total</Text>
-                      </View>
-                    );
-                  })}
-                </View>
-              )}
-            </View>
-          </View>
-        </>
-      )}
+      {/* Goals List Header */}
+      <View style={styles.listHeader}>
+        <Text style={styles.listTitle}>Your Goals</Text>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => setNewGoalVisible(true)}
+          activeOpacity={0.8}
+        >
+          <MaterialCommunityIcons name="plus" size={20} color={colors.text.primary} />
+          <Text style={styles.addButtonText}>Add Goal</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Goals List */}
-      <View style={styles.glassCard}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Your Goals ({goals.length})</Text>
-          <Button
-            mode="contained"
-            onPress={() => setNewGoalVisible(true)}
-            icon="plus"
-            style={styles.addButton}
-            labelStyle={styles.addButtonLabel}
-          >
-            Add Goal
-          </Button>
-        </View>
-
-        {goals.length === 0 ? (
-          <View style={styles.emptyState}>
-            <MaterialCommunityIcons name="target" size={64} color="#999" />
-            <Text style={styles.emptyText}>No goals yet</Text>
-            <Text style={styles.emptySubtext}>Add your first savings goal to get started!</Text>
+      {goals.length === 0 ? (
+        <View style={styles.emptyState}>
+          <View style={styles.emptyIcon}>
+            <MaterialCommunityIcons name="trophy-outline" size={48} color={colors.text.muted} />
           </View>
-        ) : (
-          goals.map((goal) => {
-            const progress = goal.target > 0 ? ((goal.current / goal.target) * 100) : 0;
-            const daysLeft = goal.deadline
-              ? Math.ceil((new Date(goal.deadline) - new Date()) / (1000 * 60 * 60 * 24))
-              : null;
+          <Text style={styles.emptyTitle}>No Goals Yet</Text>
+          <Text style={styles.emptySubtitle}>Set your first savings goal to start tracking your progress!</Text>
+        </View>
+      ) : (
+        goals.map((goal) => {
+          const progress = goal.target > 0 ? ((goal.current / goal.target) * 100) : 0;
+          const progressColor = getProgressColor(progress);
+          const daysLeft = goal.deadline
+            ? Math.ceil((new Date(goal.deadline) - new Date()) / (1000 * 60 * 60 * 24))
+            : null;
+          const isCompleted = progress >= 100;
 
-            return (
-              <View key={goal.id} style={styles.goalCard}>
-                <View style={styles.goalHeader}>
+          return (
+            <View key={goal.id} style={[styles.goalCard, isCompleted && styles.goalCardCompleted]}>
+              <View style={styles.goalHeader}>
+                <View style={styles.goalLeft}>
+                  <View style={[styles.goalIcon, { backgroundColor: progressColor + '20' }]}>
+                    <MaterialCommunityIcons
+                      name={isCompleted ? 'trophy' : 'target'}
+                      size={22}
+                      color={progressColor}
+                    />
+                  </View>
                   <View style={styles.goalInfo}>
                     <Text style={styles.goalName}>{goal.name}</Text>
                     <Text style={styles.goalAmount}>
-                      Rs. {(goal.current || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / Rs. {(goal.target || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      Rs. {(goal.current || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      <Text style={styles.goalAmountTotal}> / Rs. {(goal.target || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</Text>
                     </Text>
                   </View>
-                  <View style={styles.goalActions}>
-                    <IconButton
-                      icon="pencil"
-                      size={20}
-                      onPress={() => handleEditGoal(goal)}
-                      iconColor="#6200EE"
-                    />
-                    <IconButton
-                      icon="delete"
-                      size={20}
-                      onPress={() => handleDeleteGoal(goal.id)}
-                      iconColor="#FF6B6B"
-                    />
-                  </View>
                 </View>
-                <View style={styles.goalProgressContainer}>
-                  <View style={[styles.goalProgressBar, { width: `${Math.min(progress, 100)}%` }]} />
+                <View style={styles.goalActions}>
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => handleEditGoal(goal)}
+                    activeOpacity={0.7}
+                  >
+                    <MaterialCommunityIcons name="pencil" size={18} color={colors.primary.main} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => handleDeleteGoal(goal.id)}
+                    activeOpacity={0.7}
+                  >
+                    <MaterialCommunityIcons name="delete" size={18} color={colors.danger.main} />
+                  </TouchableOpacity>
                 </View>
-                <View style={styles.goalFooter}>
-                  <Text style={styles.goalPercent}>{progress.toFixed(1)}% Complete</Text>
-                  {goal.deadline && (
-                    <Text style={styles.goalDeadline}>
+              </View>
+
+              <View style={styles.goalProgressContainer}>
+                <View style={[styles.goalProgressBar, { width: `${Math.min(progress, 100)}%`, backgroundColor: progressColor }]} />
+              </View>
+
+              <View style={styles.goalFooter}>
+                <View style={[styles.percentBadge, { backgroundColor: progressColor + '20' }]}>
+                  <Text style={[styles.percentText, { color: progressColor }]}>
+                    {progress.toFixed(0)}%
+                  </Text>
+                </View>
+                {goal.deadline && (
+                  <View style={styles.deadlineContainer}>
+                    <MaterialCommunityIcons
+                      name="clock-outline"
+                      size={14}
+                      color={daysLeft !== null && daysLeft < 7 ? colors.danger.main : colors.text.muted}
+                    />
+                    <Text style={[
+                      styles.deadlineText,
+                      daysLeft !== null && daysLeft < 7 && { color: colors.danger.main }
+                    ]}>
                       {daysLeft !== null && daysLeft >= 0
                         ? `${daysLeft} days left`
                         : 'Deadline passed'}
                     </Text>
-                  )}
-                </View>
+                  </View>
+                )}
               </View>
-            );
-          })
-        )}
-      </View>
+            </View>
+          );
+        })
+      )}
+
+      <View style={{ height: 32 }} />
 
       {/* Add Goal Dialog */}
       <Portal>
@@ -332,7 +291,7 @@ export default function GoalsScreen() {
           onDismiss={() => setNewGoalVisible(false)}
           style={styles.dialog}
         >
-          <Dialog.Title>Add New Goal</Dialog.Title>
+          <Dialog.Title style={styles.dialogTitle}>Add New Goal</Dialog.Title>
           <Dialog.Content>
             <TextInput
               label="Goal Name"
@@ -340,6 +299,12 @@ export default function GoalsScreen() {
               onChangeText={setGoalName}
               mode="outlined"
               style={styles.dialogInput}
+              placeholder="e.g., Emergency Fund, Vacation"
+              placeholderTextColor={colors.text.muted}
+              outlineColor={colors.border.light}
+              activeOutlineColor={colors.primary.main}
+              textColor={colors.text.primary}
+              contentStyle={{ backgroundColor: colors.background.tertiary }}
             />
             <TextInput
               label="Target Amount (Rs.)"
@@ -348,7 +313,11 @@ export default function GoalsScreen() {
               keyboardType="decimal-pad"
               mode="outlined"
               style={styles.dialogInput}
-              left={<TextInput.Affix text="Rs." />}
+              left={<TextInput.Affix text="Rs." textStyle={{ color: colors.text.muted }} />}
+              outlineColor={colors.border.light}
+              activeOutlineColor={colors.primary.main}
+              textColor={colors.text.primary}
+              contentStyle={{ backgroundColor: colors.background.tertiary }}
             />
             <TextInput
               label="Current Amount (Rs.) - Optional"
@@ -357,7 +326,11 @@ export default function GoalsScreen() {
               keyboardType="decimal-pad"
               mode="outlined"
               style={styles.dialogInput}
-              left={<TextInput.Affix text="Rs." />}
+              left={<TextInput.Affix text="Rs." textStyle={{ color: colors.text.muted }} />}
+              outlineColor={colors.border.light}
+              activeOutlineColor={colors.primary.main}
+              textColor={colors.text.primary}
+              contentStyle={{ backgroundColor: colors.background.tertiary }}
             />
             <TextInput
               label="Deadline (YYYY-MM-DD) - Optional"
@@ -366,13 +339,29 @@ export default function GoalsScreen() {
               mode="outlined"
               style={styles.dialogInput}
               placeholder="2024-12-31"
+              placeholderTextColor={colors.text.muted}
+              outlineColor={colors.border.light}
+              activeOutlineColor={colors.primary.main}
+              textColor={colors.text.primary}
+              contentStyle={{ backgroundColor: colors.background.tertiary }}
             />
           </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setNewGoalVisible(false)}>Cancel</Button>
-            <Button onPress={handleAddGoal} loading={Boolean(loading)} disabled={Boolean(loading)}>
-              Add
-            </Button>
+          <Dialog.Actions style={styles.dialogActions}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setNewGoalVisible(false)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.confirmButton, loading && styles.confirmButtonDisabled]}
+              onPress={handleAddGoal}
+              activeOpacity={0.8}
+              disabled={loading}
+            >
+              <Text style={styles.confirmButtonText}>{loading ? 'Adding...' : 'Add Goal'}</Text>
+            </TouchableOpacity>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -384,7 +373,7 @@ export default function GoalsScreen() {
           onDismiss={() => setEditGoalVisible(false)}
           style={styles.dialog}
         >
-          <Dialog.Title>Edit Goal</Dialog.Title>
+          <Dialog.Title style={styles.dialogTitle}>Edit Goal</Dialog.Title>
           <Dialog.Content>
             <TextInput
               label="Goal Name"
@@ -392,6 +381,10 @@ export default function GoalsScreen() {
               onChangeText={setGoalName}
               mode="outlined"
               style={styles.dialogInput}
+              outlineColor={colors.border.light}
+              activeOutlineColor={colors.primary.main}
+              textColor={colors.text.primary}
+              contentStyle={{ backgroundColor: colors.background.tertiary }}
             />
             <TextInput
               label="Target Amount (Rs.)"
@@ -400,7 +393,11 @@ export default function GoalsScreen() {
               keyboardType="decimal-pad"
               mode="outlined"
               style={styles.dialogInput}
-              left={<TextInput.Affix text="Rs." />}
+              left={<TextInput.Affix text="Rs." textStyle={{ color: colors.text.muted }} />}
+              outlineColor={colors.border.light}
+              activeOutlineColor={colors.primary.main}
+              textColor={colors.text.primary}
+              contentStyle={{ backgroundColor: colors.background.tertiary }}
             />
             <TextInput
               label="Current Amount (Rs.)"
@@ -409,7 +406,11 @@ export default function GoalsScreen() {
               keyboardType="decimal-pad"
               mode="outlined"
               style={styles.dialogInput}
-              left={<TextInput.Affix text="Rs." />}
+              left={<TextInput.Affix text="Rs." textStyle={{ color: colors.text.muted }} />}
+              outlineColor={colors.border.light}
+              activeOutlineColor={colors.primary.main}
+              textColor={colors.text.primary}
+              contentStyle={{ backgroundColor: colors.background.tertiary }}
             />
             <TextInput
               label="Deadline (YYYY-MM-DD) - Optional"
@@ -418,13 +419,29 @@ export default function GoalsScreen() {
               mode="outlined"
               style={styles.dialogInput}
               placeholder="2024-12-31"
+              placeholderTextColor={colors.text.muted}
+              outlineColor={colors.border.light}
+              activeOutlineColor={colors.primary.main}
+              textColor={colors.text.primary}
+              contentStyle={{ backgroundColor: colors.background.tertiary }}
             />
           </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setEditGoalVisible(false)}>Cancel</Button>
-            <Button onPress={handleUpdateGoal} loading={Boolean(loading)} disabled={Boolean(loading)}>
-              Update
-            </Button>
+          <Dialog.Actions style={styles.dialogActions}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setEditGoalVisible(false)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.confirmButton, loading && styles.confirmButtonDisabled]}
+              onPress={handleUpdateGoal}
+              activeOpacity={0.8}
+              disabled={loading}
+            >
+              <Text style={styles.confirmButtonText}>{loading ? 'Updating...' : 'Update'}</Text>
+            </TouchableOpacity>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -435,104 +452,175 @@ export default function GoalsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f4f8',
-    padding: 16,
+    backgroundColor: colors.background.primary,
+    padding: spacing.lg,
   },
-  glassCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
+  progressCard: {
+    ...cardStyles.glass,
+    marginBottom: spacing.lg,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
+    borderColor: colors.warning.main + '40',
   },
   progressHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
-  progressLabel: {
+  progressInfo: {
+    flex: 1,
+  },
+  progressTitle: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
+    color: colors.text.secondary,
+    marginBottom: spacing.xs,
   },
   progressAmount: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#4ECDC4',
+    fontSize: 28,
+    fontWeight: '800',
+    color: colors.warning.main,
     marginBottom: 4,
   },
   progressTarget: {
     fontSize: 14,
-    color: '#999',
+    color: colors.text.muted,
   },
-  progressCircle: {
+  progressRing: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#4ECDC4',
+    backgroundColor: colors.background.tertiary,
+    padding: 4,
+  },
+  progressRingFill: {
+    flex: 1,
+    borderRadius: 38,
+    borderWidth: 4,
     justifyContent: 'center',
     alignItems: 'center',
   },
   progressPercent: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontSize: 18,
+    fontWeight: '800',
   },
   progressBarContainer: {
     height: 8,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: colors.background.primary,
     borderRadius: 4,
     overflow: 'hidden',
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#4ECDC4',
     borderRadius: 4,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 16,
+  summaryRow: {
+    flexDirection: 'row',
+    marginBottom: spacing.xl,
+    gap: spacing.md,
   },
-  sectionHeader: {
+  summaryItem: {
+    flex: 1,
+    ...cardStyles.glass,
+    padding: spacing.md,
+    alignItems: 'center',
+  },
+  summaryIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  summaryValue: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.text.primary,
+    marginBottom: 4,
+  },
+  summaryLabel: {
+    fontSize: 11,
+    color: colors.text.muted,
+    textAlign: 'center',
+  },
+  listHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
+  },
+  listTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text.primary,
   },
   addButton: {
-    borderRadius: 12,
-  },
-  addButtonLabel: {
-    fontSize: 12,
-  },
-  chartContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f9f9f9',
-    borderRadius: 12,
-    padding: 8,
+    backgroundColor: colors.warning.main,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.round,
+    gap: spacing.xs,
+    ...shadows.sm,
+  },
+  addButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text.inverse,
+  },
+  emptyState: {
+    ...cardStyles.glass,
+    alignItems: 'center',
+    paddingVertical: spacing.xxxl,
+  },
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.background.tertiary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text.primary,
+    marginBottom: spacing.sm,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: colors.text.muted,
+    textAlign: 'center',
+    paddingHorizontal: spacing.xl,
   },
   goalCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    ...cardStyles.glass,
+    marginBottom: spacing.md,
+    padding: spacing.lg,
+  },
+  goalCardCompleted: {
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: colors.success.main + '50',
   },
   goalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: spacing.md,
+  },
+  goalLeft: {
+    flexDirection: 'row',
+    flex: 1,
+  },
+  goalIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
   },
   goalInfo: {
     flex: 1,
@@ -540,134 +628,104 @@ const styles = StyleSheet.create({
   goalName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: colors.text.primary,
     marginBottom: 4,
   },
   goalAmount: {
     fontSize: 14,
-    color: '#666',
+    fontWeight: '600',
+    color: colors.text.primary,
+  },
+  goalAmountTotal: {
+    fontSize: 13,
+    fontWeight: '400',
+    color: colors.text.muted,
   },
   goalActions: {
     flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  actionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.background.tertiary,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   goalProgressContainer: {
-    height: 6,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 3,
+    height: 8,
+    backgroundColor: colors.background.primary,
+    borderRadius: 4,
     overflow: 'hidden',
-    marginBottom: 8,
+    marginBottom: spacing.md,
   },
   goalProgressBar: {
     height: '100%',
-    backgroundColor: '#4ECDC4',
-    borderRadius: 3,
+    borderRadius: 4,
   },
   goalFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  goalPercent: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#4ECDC4',
+  percentBadge: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.round,
   },
-  goalDeadline: {
+  percentText: {
     fontSize: 12,
-    color: '#999',
+    fontWeight: '700',
   },
-  emptyState: {
+  deadlineContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 40,
+    gap: 4,
   },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#666',
-    marginTop: 16,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 8,
-    textAlign: 'center',
+  deadlineText: {
+    fontSize: 12,
+    color: colors.text.muted,
   },
   dialog: {
-    borderRadius: 20,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.xxl,
+  },
+  dialogTitle: {
+    color: colors.text.primary,
+    fontSize: 20,
+    fontWeight: '700',
   },
   dialogInput: {
-    marginBottom: 12,
+    marginBottom: spacing.md,
+    backgroundColor: colors.background.tertiary,
   },
-  fallbackChart: {
-    width: '100%',
-    padding: 16,
+  dialogActions: {
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.lg,
+    gap: spacing.md,
   },
-  goalProgressBar: {
-    marginBottom: 16,
+  cancelButton: {
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
   },
-  goalProgressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  goalProgressName: {
+  cancelButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: colors.text.muted,
   },
-  goalProgressPercent: {
+  confirmButton: {
+    backgroundColor: colors.warning.main,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+  },
+  confirmButtonDisabled: {
+    opacity: 0.6,
+  },
+  confirmButtonText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
-  },
-  goalProgressBarContainer: {
-    height: 8,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  goalProgressBarFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  goalDistributionItem: {
-    marginBottom: 16,
-  },
-  goalDistributionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  goalDistributionColor: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    marginRight: 8,
-  },
-  goalDistributionName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    flex: 1,
-  },
-  goalDistributionAmount: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
-  },
-  goalDistributionBarContainer: {
-    height: 6,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 3,
-    overflow: 'hidden',
-    marginBottom: 4,
-  },
-  goalDistributionBarFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  goalDistributionPercent: {
-    fontSize: 12,
-    color: '#999',
+    fontWeight: '700',
+    color: colors.text.inverse,
   },
 });

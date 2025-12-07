@@ -1,21 +1,27 @@
 import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet, Text, Alert } from 'react-native';
-import { Card, Button, TextInput, Dialog, Portal, IconButton, SegmentedButtons } from 'react-native-paper';
+import { View, ScrollView, StyleSheet, Text, Alert, TouchableOpacity } from 'react-native';
+import { TextInput, Dialog, Portal, IconButton, SegmentedButtons } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext-v2';
 import * as db from '../core/db-v2';
+import { colors, spacing, borderRadius, shadows, cardStyles } from '../theme';
 
 const CategoryButton = ({ category, selected, onPress }) => {
   return (
-    <Button
-      mode={selected === true ? 'contained' : 'outlined'}
+    <TouchableOpacity
       onPress={onPress}
-      style={styles.categoryButton}
-      contentStyle={styles.categoryButtonContent}
-      icon={category.icon || undefined}
+      style={[styles.dialogCategoryButton, selected && styles.dialogCategorySelected]}
+      activeOpacity={0.7}
     >
-      {category.name || 'Category'}
-    </Button>
+      <MaterialCommunityIcons
+        name={category.icon || 'tag'}
+        size={18}
+        color={selected ? colors.text.primary : colors.text.secondary}
+      />
+      <Text style={[styles.dialogCategoryText, selected && styles.dialogCategoryTextSelected]}>
+        {category.name || 'Category'}
+      </Text>
+    </TouchableOpacity>
   );
 };
 
@@ -141,95 +147,113 @@ export default function RecurringScreen() {
     return cat ? cat.icon : 'help-circle';
   };
 
+  const getFrequencyColor = (freq) => {
+    switch (freq) {
+      case 'daily': return colors.danger.main;
+      case 'weekly': return colors.warning.main;
+      case 'monthly': return colors.primary.main;
+      case 'yearly': return colors.success.main;
+      default: return colors.text.muted;
+    }
+  };
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Summary Card */}
-      <View style={styles.glassCard}>
-        <View style={styles.summaryHeader}>
+      <View style={styles.summaryCard}>
+        <View style={styles.summaryContent}>
           <View>
             <Text style={styles.summaryLabel}>Total Monthly Recurring</Text>
             <Text style={styles.summaryAmount}>
-              Rs. {total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              Rs. {total.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </Text>
             <Text style={styles.summarySubtext}>
-              {recurring.length} expense{recurring.length !== 1 ? 's' : ''} • Avg: Rs. {average.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {recurring.length} expense{recurring.length !== 1 ? 's' : ''} • Avg: Rs. {average.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </Text>
           </View>
-          <View style={styles.summaryIcon}>
-            <MaterialCommunityIcons name="repeat" size={48} color="#6200EE" />
+          <View style={styles.summaryIconContainer}>
+            <MaterialCommunityIcons name="repeat" size={32} color={colors.accent.purple} />
           </View>
         </View>
       </View>
 
-      {/* Recurring Expenses List */}
-      <View style={styles.glassCard}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recurring Expenses ({recurring.length})</Text>
-          <Button
-            mode="contained"
-            onPress={() => setNewRecurringVisible(true)}
-            icon="plus"
-            style={styles.addButton}
-            labelStyle={styles.addButtonLabel}
-          >
-            Add
-          </Button>
-        </View>
+      {/* List Header */}
+      <View style={styles.listHeader}>
+        <Text style={styles.listTitle}>Recurring Expenses</Text>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => setNewRecurringVisible(true)}
+          activeOpacity={0.8}
+        >
+          <MaterialCommunityIcons name="plus" size={20} color={colors.text.primary} />
+          <Text style={styles.addButtonText}>Add New</Text>
+        </TouchableOpacity>
+      </View>
 
-        {recurring.length === 0 ? (
-          <View style={styles.emptyState}>
-            <MaterialCommunityIcons name="repeat" size={64} color="#999" />
-            <Text style={styles.emptyText}>No recurring expenses yet</Text>
-            <Text style={styles.emptySubtext}>Add your first recurring expense to track monthly bills!</Text>
+      {/* Recurring List */}
+      {recurring.length === 0 ? (
+        <View style={styles.emptyState}>
+          <View style={styles.emptyIcon}>
+            <MaterialCommunityIcons name="repeat-off" size={48} color={colors.text.muted} />
           </View>
-        ) : (
-          recurring.map((item) => {
-            const category = categories.find(c => c.id === item.categoryId);
-            return (
-              <View key={item.id} style={styles.recurringCard}>
-                <View style={styles.recurringHeader}>
-                  <View style={styles.recurringLeft}>
-                    <View style={[styles.categoryIcon, { backgroundColor: '#6200EE20' }]}>
-                      <MaterialCommunityIcons
-                        name={getCategoryIcon(item.categoryId)}
-                        size={24}
-                        color="#6200EE"
-                      />
-                    </View>
-                    <View style={styles.recurringInfo}>
-                      <Text style={styles.recurringName}>{item.name}</Text>
-                      <Text style={styles.recurringCategory}>{getCategoryName(item.categoryId)}</Text>
-                      <View style={styles.recurringMeta}>
-                        <MaterialCommunityIcons name="calendar-repeat" size={14} color="#999" />
-                        <Text style={styles.recurringFrequency}>{item.frequency || 'monthly'}</Text>
-                      </View>
-                    </View>
-                  </View>
-                  <View style={styles.recurringRight}>
-                    <Text style={styles.recurringAmount}>
-                      Rs. {(item.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </Text>
-                    <View style={styles.recurringActions}>
-                      <IconButton
-                        icon="pencil"
-                        size={20}
-                        onPress={() => handleEditRecurring(item)}
-                        iconColor="#6200EE"
-                      />
-                      <IconButton
-                        icon="delete"
-                        size={20}
-                        onPress={() => handleDeleteRecurring(item.id)}
-                        iconColor="#FF6B6B"
-                      />
-                    </View>
-                  </View>
+          <Text style={styles.emptyTitle}>No Recurring Expenses</Text>
+          <Text style={styles.emptySubtitle}>Add your bills and subscriptions to track monthly costs</Text>
+        </View>
+      ) : (
+        recurring.map((item) => (
+          <View key={item.id} style={styles.recurringCard}>
+            <View style={styles.recurringTop}>
+              <View style={styles.recurringLeft}>
+                <View style={[styles.categoryIconContainer, { backgroundColor: colors.accent.purple + '20' }]}>
+                  <MaterialCommunityIcons
+                    name={getCategoryIcon(item.categoryId)}
+                    size={22}
+                    color={colors.accent.purple}
+                  />
+                </View>
+                <View style={styles.recurringInfo}>
+                  <Text style={styles.recurringName}>{item.name}</Text>
+                  <Text style={styles.recurringCategory}>{getCategoryName(item.categoryId)}</Text>
                 </View>
               </View>
-            );
-          })
-        )}
-      </View>
+              <Text style={styles.recurringAmount}>
+                Rs. {(item.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              </Text>
+            </View>
+
+            <View style={styles.recurringBottom}>
+              <View style={[styles.frequencyBadge, { backgroundColor: getFrequencyColor(item.frequency) + '20' }]}>
+                <MaterialCommunityIcons
+                  name="calendar-repeat"
+                  size={14}
+                  color={getFrequencyColor(item.frequency)}
+                />
+                <Text style={[styles.frequencyText, { color: getFrequencyColor(item.frequency) }]}>
+                  {item.frequency || 'monthly'}
+                </Text>
+              </View>
+              <View style={styles.actionButtons}>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => handleEditRecurring(item)}
+                  activeOpacity={0.7}
+                >
+                  <MaterialCommunityIcons name="pencil" size={18} color={colors.primary.main} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => handleDeleteRecurring(item.id)}
+                  activeOpacity={0.7}
+                >
+                  <MaterialCommunityIcons name="delete" size={18} color={colors.danger.main} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        ))
+      )}
+
+      <View style={{ height: 32 }} />
 
       {/* Add Recurring Dialog */}
       <Portal>
@@ -238,58 +262,81 @@ export default function RecurringScreen() {
           onDismiss={() => setNewRecurringVisible(false)}
           style={styles.dialog}
         >
-          <Dialog.Title>Add Recurring Expense</Dialog.Title>
-          <Dialog.Content>
-            <TextInput
-              label="Expense Name"
-              value={recurringName}
-              onChangeText={setRecurringName}
-              mode="outlined"
-              style={styles.dialogInput}
-              placeholder="e.g., Rent, Internet Bill"
-            />
-            <TextInput
-              label="Amount (Rs.)"
-              value={recurringAmount}
-              onChangeText={setRecurringAmount}
-              keyboardType="decimal-pad"
-              mode="outlined"
-              style={styles.dialogInput}
-              left={<TextInput.Affix text="Rs." />}
-            />
-            <Text variant="labelMedium" style={{ marginTop: 8, marginBottom: 8 }}>
-              Category
-            </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
-              {expenseCategories.map((cat) => (
-                <CategoryButton
-                  key={cat.id}
-                  category={cat}
-                  selected={Boolean(selectedCategory && Number(selectedCategory.id) === Number(cat.id))}
-                  onPress={() => setSelectedCategory(cat)}
-                />
-              ))}
+          <Dialog.Title style={styles.dialogTitle}>Add Recurring Expense</Dialog.Title>
+          <Dialog.ScrollArea style={styles.dialogScrollArea}>
+            <ScrollView>
+              <TextInput
+                label="Expense Name"
+                value={recurringName}
+                onChangeText={setRecurringName}
+                mode="outlined"
+                style={styles.dialogInput}
+                placeholder="e.g., Rent, Internet Bill"
+                placeholderTextColor={colors.text.muted}
+                outlineColor={colors.border.light}
+                activeOutlineColor={colors.primary.main}
+                textColor={colors.text.primary}
+                contentStyle={{ backgroundColor: colors.background.tertiary }}
+              />
+              <TextInput
+                label="Amount (Rs.)"
+                value={recurringAmount}
+                onChangeText={setRecurringAmount}
+                keyboardType="decimal-pad"
+                mode="outlined"
+                style={styles.dialogInput}
+                left={<TextInput.Affix text="Rs." textStyle={{ color: colors.text.muted }} />}
+                outlineColor={colors.border.light}
+                activeOutlineColor={colors.primary.main}
+                textColor={colors.text.primary}
+                contentStyle={{ backgroundColor: colors.background.tertiary }}
+              />
+
+              <Text style={styles.dialogLabel}>Category</Text>
+              <View style={styles.dialogCategoryGrid}>
+                {expenseCategories.map((cat) => (
+                  <CategoryButton
+                    key={cat.id}
+                    category={cat}
+                    selected={Boolean(selectedCategory && Number(selectedCategory.id) === Number(cat.id))}
+                    onPress={() => setSelectedCategory(cat)}
+                  />
+                ))}
+              </View>
+
+              <Text style={styles.dialogLabel}>Frequency</Text>
+              <View style={styles.frequencyGrid}>
+                {['daily', 'weekly', 'monthly', 'yearly'].map((freq) => (
+                  <TouchableOpacity
+                    key={freq}
+                    style={[styles.frequencyOption, recurringFrequency === freq && styles.frequencyOptionSelected]}
+                    onPress={() => setRecurringFrequency(freq)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.frequencyOptionText, recurringFrequency === freq && styles.frequencyOptionTextSelected]}>
+                      {freq.charAt(0).toUpperCase() + freq.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </ScrollView>
-            <Text variant="labelMedium" style={{ marginTop: 16, marginBottom: 8 }}>
-              Frequency
-            </Text>
-            <SegmentedButtons
-              value={recurringFrequency}
-              onValueChange={setRecurringFrequency}
-              buttons={[
-                { value: 'daily', label: 'Daily' },
-                { value: 'weekly', label: 'Weekly' },
-                { value: 'monthly', label: 'Monthly' },
-                { value: 'yearly', label: 'Yearly' },
-              ]}
-              style={styles.segmented}
-            />
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setNewRecurringVisible(false)}>Cancel</Button>
-            <Button onPress={handleAddRecurring} loading={Boolean(loading)} disabled={Boolean(loading)}>
-              Add
-            </Button>
+          </Dialog.ScrollArea>
+          <Dialog.Actions style={styles.dialogActions}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setNewRecurringVisible(false)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.confirmButton, loading && styles.confirmButtonDisabled]}
+              onPress={handleAddRecurring}
+              activeOpacity={0.8}
+              disabled={loading}
+            >
+              <Text style={styles.confirmButtonText}>{loading ? 'Adding...' : 'Add'}</Text>
+            </TouchableOpacity>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -301,57 +348,79 @@ export default function RecurringScreen() {
           onDismiss={() => setEditRecurringVisible(false)}
           style={styles.dialog}
         >
-          <Dialog.Title>Edit Recurring Expense</Dialog.Title>
-          <Dialog.Content>
-            <TextInput
-              label="Expense Name"
-              value={recurringName}
-              onChangeText={setRecurringName}
-              mode="outlined"
-              style={styles.dialogInput}
-            />
-            <TextInput
-              label="Amount (Rs.)"
-              value={recurringAmount}
-              onChangeText={setRecurringAmount}
-              keyboardType="decimal-pad"
-              mode="outlined"
-              style={styles.dialogInput}
-              left={<TextInput.Affix text="Rs." />}
-            />
-            <Text variant="labelMedium" style={{ marginTop: 8, marginBottom: 8 }}>
-              Category
-            </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
-              {expenseCategories.map((cat) => (
-                <CategoryButton
-                  key={cat.id}
-                  category={cat}
-                  selected={Boolean(selectedCategory && Number(selectedCategory.id) === Number(cat.id))}
-                  onPress={() => setSelectedCategory(cat)}
-                />
-              ))}
+          <Dialog.Title style={styles.dialogTitle}>Edit Recurring Expense</Dialog.Title>
+          <Dialog.ScrollArea style={styles.dialogScrollArea}>
+            <ScrollView>
+              <TextInput
+                label="Expense Name"
+                value={recurringName}
+                onChangeText={setRecurringName}
+                mode="outlined"
+                style={styles.dialogInput}
+                outlineColor={colors.border.light}
+                activeOutlineColor={colors.primary.main}
+                textColor={colors.text.primary}
+                contentStyle={{ backgroundColor: colors.background.tertiary }}
+              />
+              <TextInput
+                label="Amount (Rs.)"
+                value={recurringAmount}
+                onChangeText={setRecurringAmount}
+                keyboardType="decimal-pad"
+                mode="outlined"
+                style={styles.dialogInput}
+                left={<TextInput.Affix text="Rs." textStyle={{ color: colors.text.muted }} />}
+                outlineColor={colors.border.light}
+                activeOutlineColor={colors.primary.main}
+                textColor={colors.text.primary}
+                contentStyle={{ backgroundColor: colors.background.tertiary }}
+              />
+
+              <Text style={styles.dialogLabel}>Category</Text>
+              <View style={styles.dialogCategoryGrid}>
+                {expenseCategories.map((cat) => (
+                  <CategoryButton
+                    key={cat.id}
+                    category={cat}
+                    selected={Boolean(selectedCategory && Number(selectedCategory.id) === Number(cat.id))}
+                    onPress={() => setSelectedCategory(cat)}
+                  />
+                ))}
+              </View>
+
+              <Text style={styles.dialogLabel}>Frequency</Text>
+              <View style={styles.frequencyGrid}>
+                {['daily', 'weekly', 'monthly', 'yearly'].map((freq) => (
+                  <TouchableOpacity
+                    key={freq}
+                    style={[styles.frequencyOption, recurringFrequency === freq && styles.frequencyOptionSelected]}
+                    onPress={() => setRecurringFrequency(freq)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.frequencyOptionText, recurringFrequency === freq && styles.frequencyOptionTextSelected]}>
+                      {freq.charAt(0).toUpperCase() + freq.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </ScrollView>
-            <Text variant="labelMedium" style={{ marginTop: 16, marginBottom: 8 }}>
-              Frequency
-            </Text>
-            <SegmentedButtons
-              value={recurringFrequency}
-              onValueChange={setRecurringFrequency}
-              buttons={[
-                { value: 'daily', label: 'Daily' },
-                { value: 'weekly', label: 'Weekly' },
-                { value: 'monthly', label: 'Monthly' },
-                { value: 'yearly', label: 'Yearly' },
-              ]}
-              style={styles.segmented}
-            />
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setEditRecurringVisible(false)}>Cancel</Button>
-            <Button onPress={handleUpdateRecurring} loading={Boolean(loading)} disabled={Boolean(loading)}>
-              Update
-            </Button>
+          </Dialog.ScrollArea>
+          <Dialog.Actions style={styles.dialogActions}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setEditRecurringVisible(false)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.confirmButton, loading && styles.confirmButtonDisabled]}
+              onPress={handleUpdateRecurring}
+              activeOpacity={0.8}
+              disabled={loading}
+            >
+              <Text style={styles.confirmButtonText}>{loading ? 'Updating...' : 'Update'}</Text>
+            </TouchableOpacity>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -362,91 +431,116 @@ export default function RecurringScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f4f8',
-    padding: 16,
+    backgroundColor: colors.background.primary,
+    padding: spacing.lg,
   },
-  glassCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
+  summaryCard: {
+    ...cardStyles.glass,
+    marginBottom: spacing.xl,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.accent.purple,
   },
-  summaryHeader: {
+  summaryContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   summaryLabel: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
+    color: colors.text.secondary,
+    marginBottom: spacing.xs,
   },
   summaryAmount: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#6200EE',
-    marginBottom: 4,
+    fontWeight: '800',
+    color: colors.accent.purple,
+    marginBottom: spacing.xs,
   },
   summarySubtext: {
     fontSize: 12,
-    color: '#999',
+    color: colors.text.muted,
   },
-  summaryIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#6200EE20',
+  summaryIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.accent.purple + '20',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  sectionHeader: {
+  listHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
+  listTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text.primary,
   },
   addButton: {
-    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary.main,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.round,
+    gap: spacing.xs,
+    ...shadows.sm,
   },
-  addButtonLabel: {
-    fontSize: 12,
+  addButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text.primary,
+  },
+  emptyState: {
+    ...cardStyles.glass,
+    alignItems: 'center',
+    paddingVertical: spacing.xxxl,
+  },
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.background.tertiary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text.primary,
+    marginBottom: spacing.sm,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: colors.text.muted,
+    textAlign: 'center',
   },
   recurringCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    ...cardStyles.glass,
+    marginBottom: spacing.md,
+    padding: spacing.lg,
   },
-  recurringHeader: {
+  recurringTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    marginBottom: spacing.md,
   },
   recurringLeft: {
     flexDirection: 'row',
     flex: 1,
   },
-  categoryIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  categoryIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   recurringInfo: {
     flex: 1,
@@ -454,68 +548,160 @@ const styles = StyleSheet.create({
   recurringName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: colors.text.primary,
     marginBottom: 4,
   },
   recurringCategory: {
     fontSize: 12,
-    color: '#666',
-    marginBottom: 4,
-  },
-  recurringMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  recurringFrequency: {
-    fontSize: 12,
-    color: '#999',
-    marginLeft: 4,
-  },
-  recurringRight: {
-    alignItems: 'flex-end',
+    color: colors.text.muted,
   },
   recurringAmount: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#6200EE',
-    marginBottom: 8,
+    fontWeight: '700',
+    color: colors.accent.purple,
   },
-  recurringActions: {
+  recurringBottom: {
     flexDirection: 'row',
-  },
-  emptyState: {
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.light,
   },
-  emptyText: {
-    fontSize: 18,
+  frequencyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.round,
+    gap: spacing.xs,
+  },
+  frequencyText: {
+    fontSize: 12,
     fontWeight: '600',
-    color: '#666',
-    marginTop: 16,
+    textTransform: 'capitalize',
   },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 8,
-    textAlign: 'center',
+  actionButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  actionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.background.tertiary,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   dialog: {
-    borderRadius: 20,
+    backgroundColor: colors.background.secondary,
+    borderRadius: borderRadius.xxl,
+    maxHeight: '80%',
+  },
+  dialogTitle: {
+    color: colors.text.primary,
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  dialogScrollArea: {
+    paddingHorizontal: spacing.xl,
+    maxHeight: 400,
   },
   dialogInput: {
-    marginBottom: 12,
+    marginBottom: spacing.md,
+    backgroundColor: colors.background.tertiary,
   },
-  categoryScroll: {
-    marginBottom: 12,
+  dialogLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text.primary,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
   },
-  categoryButton: {
-    marginRight: 8,
-    marginBottom: 8,
+  dialogCategoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -4,
   },
-  categoryButtonContent: {
-    height: 36,
+  dialogCategoryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    margin: 4,
+    borderRadius: borderRadius.round,
+    backgroundColor: colors.background.tertiary,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    gap: spacing.xs,
   },
-  segmented: {
-    marginBottom: 12,
+  dialogCategorySelected: {
+    borderColor: colors.primary.main,
+    backgroundColor: colors.primary.main + '20',
+  },
+  dialogCategoryText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: colors.text.secondary,
+  },
+  dialogCategoryTextSelected: {
+    color: colors.primary.main,
+    fontWeight: '600',
+  },
+  frequencyGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  frequencyOption: {
+    flex: 1,
+    minWidth: '45%',
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.background.tertiary,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  frequencyOptionSelected: {
+    borderColor: colors.primary.main,
+    backgroundColor: colors.primary.main + '20',
+  },
+  frequencyOptionText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: colors.text.secondary,
+  },
+  frequencyOptionTextSelected: {
+    color: colors.primary.main,
+    fontWeight: '600',
+  },
+  dialogActions: {
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.lg,
+    gap: spacing.md,
+  },
+  cancelButton: {
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+  },
+  cancelButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text.muted,
+  },
+  confirmButton: {
+    backgroundColor: colors.primary.main,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+  },
+  confirmButtonDisabled: {
+    opacity: 0.6,
+  },
+  confirmButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text.primary,
   },
 });
