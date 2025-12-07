@@ -103,7 +103,7 @@ const SettingsScreen = () => {
               keyboardType="decimal-pad"
               mode="outlined"
               style={styles.input}
-              left={<TextInput.Affix text="$" />}
+              left={<TextInput.Affix text="Rs." />}
             />
 
             <TextInput
@@ -163,7 +163,7 @@ const SettingsScreen = () => {
             <View style={styles.infoRow}>
               <Text variant="labelMedium">Monthly Salary:</Text>
               <Text variant="labelMedium" style={{ fontWeight: '600' }}>
-                ${parseFloat(salary).toFixed(2)}
+                Rs. {parseFloat(salary || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </Text>
             </View>
 
@@ -206,7 +206,7 @@ const SettingsScreen = () => {
                   {goal.name}
                 </Text>
                 <Text variant="labelSmall" style={{ color: '#666', marginTop: 2 }}>
-                  Target: ${goal.target?.toFixed(2)}
+                  Target: Rs. {(goal.target || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </Text>
               </View>
             ))
@@ -264,7 +264,7 @@ const SettingsScreen = () => {
               keyboardType="decimal-pad"
               mode="outlined"
               style={styles.dialogInput}
-              left={<TextInput.Affix text="$" />}
+              left={<TextInput.Affix text="Rs." />}
             />
             <TextInput
               label="Deadline (optional)"

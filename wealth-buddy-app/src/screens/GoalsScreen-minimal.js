@@ -13,7 +13,7 @@ export default function GoalsScreen() {
       <View style={styles.section}>
         <Text style={styles.title}>Savings Goals</Text>
         <Text style={styles.text}>
-          Progress: ${totalCurrent.toFixed(2)} / ${totalTarget.toFixed(2)}
+          Progress: Rs. {totalCurrent.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / Rs. {totalTarget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </Text>
         <Text style={styles.text}>Goal Count: {goals.length}</Text>
       </View>
@@ -26,7 +26,7 @@ export default function GoalsScreen() {
             <View key={goal.id} style={styles.goal}>
               <Text style={styles.goalName}>{goal.name}</Text>
               <Text style={styles.goalAmount}>
-                ${goal.current || 0} / ${goal.target || 0}
+                Rs. {(goal.current || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / Rs. {(goal.target || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </Text>
               <Text style={styles.goalPercent}>{percent}%</Text>
               {goal.deadline && (

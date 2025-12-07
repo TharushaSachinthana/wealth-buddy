@@ -11,7 +11,7 @@ export default function RecurringScreen() {
     <ScrollView style={styles.container}>
       <View style={styles.section}>
         <Text style={styles.title}>Recurring Expenses</Text>
-        <Text style={styles.text}>Total: ${total.toFixed(2)}</Text>
+        <Text style={styles.text}>Total: Rs. {total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
         <Text style={styles.text}>Count: {recurring.length}</Text>
       </View>
 
@@ -20,7 +20,7 @@ export default function RecurringScreen() {
         {recurring.map((item) => (
           <View key={item.id} style={styles.item}>
             <Text style={styles.itemName}>{item.name}</Text>
-            <Text style={styles.itemAmount}>${(item.amount || 0).toFixed(2)}</Text>
+            <Text style={styles.itemAmount}>Rs. {(item.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
             <Text style={styles.itemFreq}>{item.frequency}</Text>
           </View>
         ))}

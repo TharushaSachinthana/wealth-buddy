@@ -12,7 +12,7 @@ export default function SettingsScreen() {
         {user && (
           <>
             <Text style={styles.text}>Name: {user.name}</Text>
-            <Text style={styles.text}>Monthly Salary: ${(user.salary || 0).toFixed(2)}</Text>
+            <Text style={styles.text}>Monthly Salary: Rs. {(user.salary || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
             <Text style={styles.text}>Savings %: {user.savingsPercent || 0}%</Text>
             <Text style={styles.text}>Buffer %: {user.bufferPercent || 0}%</Text>
           </>
@@ -24,7 +24,7 @@ export default function SettingsScreen() {
         {goals.map((goal) => (
           <View key={goal.id} style={styles.goal}>
             <Text style={styles.goalName}>{goal.name}</Text>
-            <Text style={styles.goalAmount}>Target: ${goal.target || 0}</Text>
+            <Text style={styles.goalAmount}>Target: Rs. {(goal.target || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
           </View>
         ))}
       </View>

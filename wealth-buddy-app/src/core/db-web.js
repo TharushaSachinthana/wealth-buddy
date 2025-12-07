@@ -77,20 +77,45 @@ export async function initializeSchema() {
   }
 }
 
-// Seed sample data
+// Seed sample data - Only categories and user profile, no template transactions/goals
 export async function seedSampleData() {
   try {
     const existingUser = getStorage(STORAGE_KEYS.users).find(u => u.id === 1);
     if (existingUser) {
-      console.log('✓ Sample data already exists');
+      console.log('✓ User data already exists');
+      // Update if name is John Doe or salary is 5000 or 0
+      if (existingUser.name === 'John Doe' || existingUser.salary === 5000 || !existingUser.salary || existingUser.salary === 0) {
+        const users = getStorage(STORAGE_KEYS.users);
+        const updated = users.map(u => 
+          u.id === 1 ? { ...u, name: 'Tharusha Thilakarathna', salary: 150000 } : u
+        );
+        setStorage(STORAGE_KEYS.users, updated);
+        console.log('✓ Updated user profile to Tharusha Thilakarathna with salary Rs. 150,000');
+      }
+      // Still ensure categories exist
+      const existingCategories = getStorage(STORAGE_KEYS.categories);
+      if (existingCategories.length === 0) {
+        const categories = [
+          { id: 1, name: 'Rent/Mortgage', type: 'expense', icon: 'home' },
+          { id: 2, name: 'Groceries', type: 'expense', icon: 'shopping-cart' },
+          { id: 3, name: 'Utilities', type: 'expense', icon: 'flash' },
+          { id: 4, name: 'Transportation', type: 'expense', icon: 'car' },
+          { id: 5, name: 'Entertainment', type: 'expense', icon: 'movie' },
+          { id: 6, name: 'Healthcare', type: 'expense', icon: 'hospital-box' },
+          { id: 7, name: 'Insurance', type: 'expense', icon: 'shield' },
+          { id: 8, name: 'Other', type: 'expense', icon: 'dots-horizontal' },
+          { id: 9, name: 'Salary', type: 'income', icon: 'briefcase' },
+        ];
+        setStorage(STORAGE_KEYS.categories, categories);
+      }
       return true;
     }
 
-    // Insert default user
-    const users = [{ id: 1, name: 'John Doe', salary: 5000, savingsPercent: 15, bufferPercent: 10 }];
+    // Insert default user with your name and salary
+    const users = [{ id: 1, name: 'Tharusha Thilakarathna', salary: 150000, savingsPercent: 15, bufferPercent: 10 }];
     setStorage(STORAGE_KEYS.users, users);
 
-    // Insert categories
+    // Insert categories only (no template data)
     const categories = [
       { id: 1, name: 'Rent/Mortgage', type: 'expense', icon: 'home' },
       { id: 2, name: 'Groceries', type: 'expense', icon: 'shopping-cart' },
@@ -104,24 +129,13 @@ export async function seedSampleData() {
     ];
     setStorage(STORAGE_KEYS.categories, categories);
 
-    // Insert recurring expenses
-    const recurring = [
-      { id: 1, categoryId: 1, amount: 1200, frequency: 'monthly', name: 'Rent' },
-      { id: 2, categoryId: 3, amount: 150, frequency: 'monthly', name: 'Utilities' },
-      { id: 3, categoryId: 7, amount: 400, frequency: 'monthly', name: 'Insurance' },
-      { id: 4, categoryId: 4, amount: 400, frequency: 'monthly', name: 'Gas' },
-    ];
-    setStorage(STORAGE_KEYS.recurring, recurring);
+    // Initialize empty arrays for transactions, recurring, and goals
+    // User will add their own data through Quick Add
+    setStorage(STORAGE_KEYS.transactions, []);
+    setStorage(STORAGE_KEYS.recurring, []);
+    setStorage(STORAGE_KEYS.goals, []);
 
-    // Insert goals
-    const goals = [
-      { id: 1, name: 'Emergency Fund', target: 10000, current: 5000, deadline: '2024-12-31' },
-      { id: 2, name: 'Vacation', target: 3000, current: 800, deadline: '2024-06-30' },
-      { id: 3, name: 'New Laptop', target: 1500, current: 600, deadline: '2024-09-30' },
-    ];
-    setStorage(STORAGE_KEYS.goals, goals);
-
-    console.log('✓ Sample data seeded');
+    console.log('✓ Database initialized with categories only - ready for your data!');
     return true;
   } catch (error) {
     console.error('❌ Seed error:', error);
@@ -373,9 +387,33 @@ export async function updateUser(name, salary, savingsPercent, bufferPercent) {
   }
 }
 
-// Format money
+// Format money in Sri Lankan Rupees (LKR)
 export function formatMoney(amount) {
-  if (amount === null || amount === undefined) return '$0.00';
+  if (amount === null || amount === undefined) return 'Rs. 0.00';
   const num = Number(amount);
-  return `$${isNaN(num) ? '0.00' : num.toFixed(2)}`;
+  // Format with thousand separators for better readability
+  const formatted = isNaN(num) ? '0.00' : Math.abs(num).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `Rs. ${formatted}`;
+}
+
+// Get all transactions for a month (for CSV export)
+export async function getAllTransactionsForMonth(year, month) {
+  try {
+    const transactions = getStorage(STORAGE_KEYS.transactions);
+    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const endDate = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
+    
+    const filtered = transactions.filter(t => t.date >= startDate && t.date <= endDate);
+    
+    return (filtered || []).map(t => ({
+      ...t,
+      id: Number(t.id) || 0,
+      categoryId: Number(t.categoryId) || 0,
+      amount: Number(t.amount) || 0,
+    }));
+  } catch (error) {
+    console.error('❌ Error getting transactions for export:', error);
+    return [];
+  }
 }

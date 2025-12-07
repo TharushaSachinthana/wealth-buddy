@@ -115,7 +115,7 @@ const QuickAddScreen = () => {
             keyboardType="decimal-pad"
             mode="outlined"
             style={styles.input}
-            left={<TextInput.Affix text="$" />}
+            left={<TextInput.Affix text="Rs." />}
             placeholder="0.00"
           />
 

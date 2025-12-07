@@ -1,29 +1,38 @@
 import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
-import {
-  Card,
-  Text,
-  Button,
-  ProgressBar,
-  Dialog,
-  Portal,
-  TextInput,
-  Alert,
-} from 'react-native-paper';
+import { View, ScrollView, StyleSheet, Text, Alert, TouchableOpacity } from 'react-native';
+import { Card, Button, TextInput, Dialog, Portal, IconButton } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext-v2';
+// Conditionally import Victory charts
+let VictoryPie, VictoryChart, VictoryBar, VictoryTheme;
+try {
+  const Victory = require('victory-native');
+  VictoryPie = Victory.VictoryPie;
+  VictoryChart = Victory.VictoryChart;
+  VictoryBar = Victory.VictoryBar;
+  VictoryTheme = Victory.VictoryTheme;
+} catch (e) {
+  console.warn('Victory charts not available, using fallback UI');
+}
 
-const GoalsScreen = () => {
-  const { goals, deleteGoal, saveGoal } = useApp();
+export default function GoalsScreen() {
+  const { goals, saveGoal, deleteGoal } = useApp();
   const [newGoalVisible, setNewGoalVisible] = useState(false);
+  const [editGoalVisible, setEditGoalVisible] = useState(false);
   const [goalName, setGoalName] = useState('');
   const [goalTarget, setGoalTarget] = useState('');
+  const [goalCurrent, setGoalCurrent] = useState('');
   const [goalDeadline, setGoalDeadline] = useState('');
+  const [editingGoal, setEditingGoal] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const totalTarget = goals.reduce((sum, g) => sum + (g.target || 0), 0);
+  const totalCurrent = goals.reduce((sum, g) => sum + (g.current || 0), 0);
+  const overallProgress = totalTarget > 0 ? (totalCurrent / totalTarget) * 100 : 0;
 
   const handleAddGoal = async () => {
     if (!goalName || !goalTarget) {
-      Alert.alert('Error', 'Goal name and target are required');
+      Alert.alert('Error', 'Please enter goal name and target amount');
       return;
     }
 
@@ -33,7 +42,7 @@ const GoalsScreen = () => {
         null,
         goalName,
         parseFloat(goalTarget),
-        0,
+        parseFloat(goalCurrent || 0),
         goalDeadline
       );
 
@@ -41,8 +50,9 @@ const GoalsScreen = () => {
         setNewGoalVisible(false);
         setGoalName('');
         setGoalTarget('');
+        setGoalCurrent('');
         setGoalDeadline('');
-        Alert.alert('Success', 'Goal added!');
+        Alert.alert('Success', 'Goal added successfully!');
       } else {
         Alert.alert('Error', 'Failed to add goal');
       }
@@ -53,128 +63,275 @@ const GoalsScreen = () => {
     }
   };
 
-  const handleDeleteGoal = (id) => {
-    Alert.alert('Delete Goal', 'Are you sure?', [
-      { text: 'Cancel', onPress: () => {} },
-      {
-        text: 'Delete',
-        onPress: () => deleteGoal(id),
-        style: 'destructive',
-      },
-    ]);
+  const handleEditGoal = (goal) => {
+    setEditingGoal(goal);
+    setGoalName(goal.name);
+    setGoalTarget(goal.target.toString());
+    setGoalCurrent(goal.current.toString());
+    setGoalDeadline(goal.deadline || '');
+    setEditGoalVisible(true);
   };
 
-  const overallProgress =
-    goals && goals.length > 0
-      ? goals.reduce((sum, g) => sum + (g.target > 0 ? g.current / g.target : 0), 0) /
-        goals.length
-      : 0;
+  const handleUpdateGoal = async () => {
+    if (!goalName || !goalTarget) {
+      Alert.alert('Error', 'Please enter goal name and target amount');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const success = await saveGoal(
+        editingGoal.id,
+        goalName,
+        parseFloat(goalTarget),
+        parseFloat(goalCurrent || 0),
+        goalDeadline
+      );
+
+      if (success) {
+        setEditGoalVisible(false);
+        setEditingGoal(null);
+        setGoalName('');
+        setGoalTarget('');
+        setGoalCurrent('');
+        setGoalDeadline('');
+        Alert.alert('Success', 'Goal updated successfully!');
+      } else {
+        Alert.alert('Error', 'Failed to update goal');
+      }
+    } catch (error) {
+      Alert.alert('Error', error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteGoal = async (goalId) => {
+    Alert.alert(
+      'Delete Goal',
+      'Are you sure you want to delete this goal?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            const success = await deleteGoal(goalId);
+            if (success) {
+              Alert.alert('Success', 'Goal deleted successfully!');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Prepare chart data
+  const chartData = goals.map((goal, index) => ({
+    x: goal.name.length > 10 ? goal.name.substring(0, 10) + '...' : goal.name,
+    y: goal.target > 0 ? ((goal.current / goal.target) * 100) : 0,
+    label: `${((goal.current / goal.target) * 100).toFixed(0)}%`,
+  }));
+
+  const pieData = goals.map((goal) => ({
+    x: goal.name,
+    y: goal.target,
+    label: `${goal.name}\nRs. ${(goal.target || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+  }));
 
   return (
     <ScrollView style={styles.container}>
-      {/* Overall Progress */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Text variant="titleMedium" style={{ marginBottom: 12 }}>
-            Overall Progress
-          </Text>
-          <View style={styles.progressContainer}>
-            <ProgressBar
-              progress={Math.max(0, Math.min(1, Number(overallProgress) || 0))}
-              color="#6200EE"
-              style={styles.overallProgress}
-            />
-            <Text
-              variant="labelMedium"
-              style={{
-                marginTop: 8,
-                textAlign: 'center',
-                fontWeight: 'bold',
-                color: '#6200EE',
-              }}
-            >
-              {(overallProgress * 100).toFixed(0)}% Complete
+      {/* Overall Progress Card */}
+      <View style={styles.glassCard}>
+        <View style={styles.progressHeader}>
+          <View>
+            <Text style={styles.progressLabel}>Overall Progress</Text>
+            <Text style={styles.progressAmount}>
+              Rs. {totalCurrent.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </Text>
+            <Text style={styles.progressTarget}>
+              of Rs. {totalTarget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </Text>
           </View>
-        </Card.Content>
-      </Card>
+          <View style={styles.progressCircle}>
+            <Text style={styles.progressPercent}>{overallProgress.toFixed(0)}%</Text>
+          </View>
+        </View>
+        <View style={styles.progressBarContainer}>
+          <View style={[styles.progressBar, { width: `${Math.min(overallProgress, 100)}%` }]} />
+        </View>
+      </View>
 
-      {/* Individual Goals */}
-      {goals && goals.length > 0 ? (
-        goals.map((goal) => {
-          const progress = goal.target > 0 ? goal.current / goal.target : 0;
-          return (
-            <Card key={goal.id} style={styles.card}>
-              <Card.Content>
-                <View style={styles.goalHeader}>
-                  <View style={styles.goalInfo}>
-                    <Text variant="titleSmall" style={{ fontWeight: '600' }}>
-                      {goal.name}
-                    </Text>
-                    {goal.deadline && (
-                      <Text variant="labelSmall" style={{ color: '#999', marginTop: 4 }}>
-                        Deadline: {goal.deadline}
-                      </Text>
-                    )}
-                  </View>
-                  <Button
-                    icon="trash-can"
-                    mode="text"
-                    compact={true}
-                    textColor="#FF6B6B"
-                    onPress={() => handleDeleteGoal(goal.id)}
+      {/* Charts Section */}
+      {goals.length > 0 && (
+        <>
+          <View style={styles.glassCard}>
+            <Text style={styles.sectionTitle}>Goals Progress</Text>
+            <View style={styles.chartContainer}>
+              {VictoryChart && VictoryBar ? (
+                <VictoryChart
+                  theme={VictoryTheme.material}
+                  height={200}
+                  padding={{ left: 50, right: 20, top: 20, bottom: 40 }}
+                >
+                  <VictoryBar
+                    data={chartData}
+                    style={{
+                      data: {
+                        fill: ({ datum }) => {
+                          const progress = datum.y;
+                          if (progress >= 75) return '#4ECDC4';
+                          if (progress >= 50) return '#95E1D3';
+                          if (progress >= 25) return '#FFD93D';
+                          return '#FF6B6B';
+                        },
+                      },
+                    }}
+                    cornerRadius={{ top: 8 }}
                   />
+                </VictoryChart>
+              ) : (
+                <View style={styles.fallbackChart}>
+                  {goals.map((goal, index) => {
+                    const progress = goal.target > 0 ? ((goal.current / goal.target) * 100) : 0;
+                    const colors = ['#4ECDC4', '#95E1D3', '#FFD93D', '#FF6B6B'];
+                    const color = progress >= 75 ? colors[0] : progress >= 50 ? colors[1] : progress >= 25 ? colors[2] : colors[3];
+                    return (
+                      <View key={goal.id} style={styles.goalProgressBar}>
+                        <View style={styles.goalProgressHeader}>
+                          <Text style={styles.goalProgressName}>{goal.name}</Text>
+                          <Text style={styles.goalProgressPercent}>{progress.toFixed(0)}%</Text>
+                        </View>
+                        <View style={styles.goalProgressBarContainer}>
+                          <View style={[styles.goalProgressBarFill, { width: `${Math.min(progress, 100)}%`, backgroundColor: color }]} />
+                        </View>
+                      </View>
+                    );
+                  })}
                 </View>
+              )}
+            </View>
+          </View>
 
-                <View style={styles.goalStats}>
-                  <Text variant="labelSmall" style={{ color: '#666' }}>
-                    ${goal.current?.toFixed(2)} / ${goal.target?.toFixed(2)}
-                  </Text>
-                  <Text variant="labelSmall" style={{ color: '#6200EE', fontWeight: 'bold' }}>
-                    {(progress * 100).toFixed(0)}%
-                  </Text>
-                </View>
-
-                <ProgressBar
-                  progress={Math.max(0, Math.min(1, Number(progress) || 0))}
-                  color="#4ECDC4"
-                  style={styles.goalProgress}
+          <View style={styles.glassCard}>
+            <Text style={styles.sectionTitle}>Goals Distribution</Text>
+            <View style={styles.chartContainer}>
+              {VictoryPie ? (
+                <VictoryPie
+                  data={pieData}
+                  height={250}
+                  colorScale={['#4ECDC4', '#95E1D3', '#FFD93D', '#FF6B6B', '#F38181', '#C92A2A']}
+                  style={{
+                    labels: {
+                      fontSize: 10,
+                      fill: '#333',
+                    },
+                  }}
                 />
-              </Card.Content>
-            </Card>
-          );
-        })
-      ) : (
-        <Card style={styles.card}>
-          <Card.Content style={{ alignItems: 'center', paddingVertical: 32 }}>
-            <MaterialCommunityIcons
-              name="target-outline"
-              size={48}
-              color="#ccc"
-            />
-            <Text
-              variant="labelMedium"
-              style={{ color: '#999', marginTop: 12, textAlign: 'center' }}
-            >
-              No goals yet. Create one to get started!
-            </Text>
-          </Card.Content>
-        </Card>
+              ) : (
+                <View style={styles.fallbackChart}>
+                  {goals.map((goal, index) => {
+                    const percentage = totalTarget > 0 ? (goal.target / totalTarget) * 100 : 0;
+                    const colors = ['#4ECDC4', '#95E1D3', '#FFD93D', '#FF6B6B', '#F38181', '#C92A2A'];
+                    return (
+                      <View key={goal.id} style={styles.goalDistributionItem}>
+                        <View style={styles.goalDistributionHeader}>
+                          <View style={[styles.goalDistributionColor, { backgroundColor: colors[index % colors.length] }]} />
+                          <Text style={styles.goalDistributionName}>{goal.name}</Text>
+                          <Text style={styles.goalDistributionAmount}>Rs. {goal.target.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</Text>
+                        </View>
+                        <View style={styles.goalDistributionBarContainer}>
+                          <View style={[styles.goalDistributionBarFill, { width: `${percentage}%`, backgroundColor: colors[index % colors.length] }]} />
+                        </View>
+                        <Text style={styles.goalDistributionPercent}>{percentage.toFixed(1)}% of total</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+          </View>
+        </>
       )}
 
-      {/* Add Button */}
-      <Button
-        mode="contained"
-        onPress={() => setNewGoalVisible(true)}
-        style={styles.addButton}
-        icon="plus"
-      >
-        Add New Goal
-      </Button>
+      {/* Goals List */}
+      <View style={styles.glassCard}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Your Goals ({goals.length})</Text>
+          <Button
+            mode="contained"
+            onPress={() => setNewGoalVisible(true)}
+            icon="plus"
+            style={styles.addButton}
+            labelStyle={styles.addButtonLabel}
+          >
+            Add Goal
+          </Button>
+        </View>
+
+        {goals.length === 0 ? (
+          <View style={styles.emptyState}>
+            <MaterialCommunityIcons name="target" size={64} color="#999" />
+            <Text style={styles.emptyText}>No goals yet</Text>
+            <Text style={styles.emptySubtext}>Add your first savings goal to get started!</Text>
+          </View>
+        ) : (
+          goals.map((goal) => {
+            const progress = goal.target > 0 ? ((goal.current / goal.target) * 100) : 0;
+            const daysLeft = goal.deadline
+              ? Math.ceil((new Date(goal.deadline) - new Date()) / (1000 * 60 * 60 * 24))
+              : null;
+
+            return (
+              <View key={goal.id} style={styles.goalCard}>
+                <View style={styles.goalHeader}>
+                  <View style={styles.goalInfo}>
+                    <Text style={styles.goalName}>{goal.name}</Text>
+                    <Text style={styles.goalAmount}>
+                      Rs. {(goal.current || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / Rs. {(goal.target || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </Text>
+                  </View>
+                  <View style={styles.goalActions}>
+                    <IconButton
+                      icon="pencil"
+                      size={20}
+                      onPress={() => handleEditGoal(goal)}
+                      iconColor="#6200EE"
+                    />
+                    <IconButton
+                      icon="delete"
+                      size={20}
+                      onPress={() => handleDeleteGoal(goal.id)}
+                      iconColor="#FF6B6B"
+                    />
+                  </View>
+                </View>
+                <View style={styles.goalProgressContainer}>
+                  <View style={[styles.goalProgressBar, { width: `${Math.min(progress, 100)}%` }]} />
+                </View>
+                <View style={styles.goalFooter}>
+                  <Text style={styles.goalPercent}>{progress.toFixed(1)}% Complete</Text>
+                  {goal.deadline && (
+                    <Text style={styles.goalDeadline}>
+                      {daysLeft !== null && daysLeft >= 0
+                        ? `${daysLeft} days left`
+                        : 'Deadline passed'}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            );
+          })
+        )}
+      </View>
 
       {/* Add Goal Dialog */}
       <Portal>
-        <Dialog visible={Boolean(newGoalVisible)} onDismiss={() => setNewGoalVisible(false)}>
+        <Dialog
+          visible={Boolean(newGoalVisible)}
+          onDismiss={() => setNewGoalVisible(false)}
+          style={styles.dialog}
+        >
           <Dialog.Title>Add New Goal</Dialog.Title>
           <Dialog.Content>
             <TextInput
@@ -185,21 +342,30 @@ const GoalsScreen = () => {
               style={styles.dialogInput}
             />
             <TextInput
-              label="Target Amount"
+              label="Target Amount (Rs.)"
               value={goalTarget}
               onChangeText={setGoalTarget}
               keyboardType="decimal-pad"
               mode="outlined"
               style={styles.dialogInput}
-              left={<TextInput.Affix text="$" />}
+              left={<TextInput.Affix text="Rs." />}
             />
             <TextInput
-              label="Deadline (optional)"
+              label="Current Amount (Rs.) - Optional"
+              value={goalCurrent}
+              onChangeText={setGoalCurrent}
+              keyboardType="decimal-pad"
+              mode="outlined"
+              style={styles.dialogInput}
+              left={<TextInput.Affix text="Rs." />}
+            />
+            <TextInput
+              label="Deadline (YYYY-MM-DD) - Optional"
               value={goalDeadline}
               onChangeText={setGoalDeadline}
               mode="outlined"
               style={styles.dialogInput}
-              placeholder="YYYY-MM-DD"
+              placeholder="2024-12-31"
             />
           </Dialog.Content>
           <Dialog.Actions>
@@ -210,25 +376,157 @@ const GoalsScreen = () => {
           </Dialog.Actions>
         </Dialog>
       </Portal>
+
+      {/* Edit Goal Dialog */}
+      <Portal>
+        <Dialog
+          visible={Boolean(editGoalVisible)}
+          onDismiss={() => setEditGoalVisible(false)}
+          style={styles.dialog}
+        >
+          <Dialog.Title>Edit Goal</Dialog.Title>
+          <Dialog.Content>
+            <TextInput
+              label="Goal Name"
+              value={goalName}
+              onChangeText={setGoalName}
+              mode="outlined"
+              style={styles.dialogInput}
+            />
+            <TextInput
+              label="Target Amount (Rs.)"
+              value={goalTarget}
+              onChangeText={setGoalTarget}
+              keyboardType="decimal-pad"
+              mode="outlined"
+              style={styles.dialogInput}
+              left={<TextInput.Affix text="Rs." />}
+            />
+            <TextInput
+              label="Current Amount (Rs.)"
+              value={goalCurrent}
+              onChangeText={setGoalCurrent}
+              keyboardType="decimal-pad"
+              mode="outlined"
+              style={styles.dialogInput}
+              left={<TextInput.Affix text="Rs." />}
+            />
+            <TextInput
+              label="Deadline (YYYY-MM-DD) - Optional"
+              value={goalDeadline}
+              onChangeText={setGoalDeadline}
+              mode="outlined"
+              style={styles.dialogInput}
+              placeholder="2024-12-31"
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setEditGoalVisible(false)}>Cancel</Button>
+            <Button onPress={handleUpdateGoal} loading={Boolean(loading)} disabled={Boolean(loading)}>
+              Update
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </ScrollView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    padding: 12,
+    backgroundColor: '#f0f4f8',
+    padding: 16,
   },
-  card: {
+  glassCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 20,
+    padding: 20,
     marginBottom: 16,
-    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
   },
-  progressContainer: {
-    paddingVertical: 8,
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  overallProgress: {
+  progressLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  progressAmount: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#4ECDC4',
+    marginBottom: 4,
+  },
+  progressTarget: {
+    fontSize: 14,
+    color: '#999',
+  },
+  progressCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#4ECDC4',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  progressPercent: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  progressBarContainer: {
     height: 8,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: '#4ECDC4',
+    borderRadius: 4,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 16,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  addButton: {
+    borderRadius: 12,
+  },
+  addButtonLabel: {
+    fontSize: 12,
+  },
+  chartContainer: {
+    alignItems: 'center',
+    backgroundColor: '#f9f9f9',
+    borderRadius: 12,
+    padding: 8,
+  },
+  goalCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
   goalHeader: {
     flexDirection: 'row',
@@ -239,21 +537,137 @@ const styles = StyleSheet.create({
   goalInfo: {
     flex: 1,
   },
-  goalStats: {
+  goalName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  goalAmount: {
+    fontSize: 14,
+    color: '#666',
+  },
+  goalActions: {
+    flexDirection: 'row',
+  },
+  goalProgressContainer: {
+    height: 6,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  goalProgressBar: {
+    height: '100%',
+    backgroundColor: '#4ECDC4',
+    borderRadius: 3,
+  },
+  goalFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
   },
-  goalProgress: {
-    height: 6,
+  goalPercent: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#4ECDC4',
+  },
+  goalDeadline: {
+    fontSize: 12,
+    color: '#999',
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#666',
+    marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#999',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  dialog: {
+    borderRadius: 20,
   },
   dialogInput: {
     marginBottom: 12,
   },
-  addButton: {
-    marginBottom: 32,
+  fallbackChart: {
+    width: '100%',
+    padding: 16,
+  },
+  goalProgressBar: {
+    marginBottom: 16,
+  },
+  goalProgressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  goalProgressName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  goalProgressPercent: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  goalProgressBarContainer: {
+    height: 8,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  goalProgressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  goalDistributionItem: {
+    marginBottom: 16,
+  },
+  goalDistributionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  goalDistributionColor: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  goalDistributionName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    flex: 1,
+  },
+  goalDistributionAmount: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  goalDistributionBarContainer: {
+    height: 6,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 4,
+  },
+  goalDistributionBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  goalDistributionPercent: {
+    fontSize: 12,
+    color: '#999',
   },
 });
-
-export default GoalsScreen;

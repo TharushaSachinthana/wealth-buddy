@@ -3,10 +3,11 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import DashboardScreen from '../screens/DashboardScreen-minimal';
+import DashboardScreen from '../screens/DashboardScreen-modern';
 import QuickAddScreen from '../screens/QuickAddScreen';
+import CalendarScreen from '../screens/CalendarScreen';
 import RecurringScreen from '../screens/RecurringScreen-minimal';
-import GoalsScreen from '../screens/GoalsScreen-minimal';
+import GoalsScreen from '../screens/GoalsScreen';
 import SettingsScreen from '../screens/SettingsScreen-minimal';
 
 const Stack = createNativeStackNavigator();
@@ -40,6 +41,22 @@ const QuickAddStack = () => (
       name="QuickAddMain"
       component={QuickAddScreen}
       options={{ title: 'Quick Add' }}
+    />
+  </Stack.Navigator>
+);
+
+const CalendarStack = () => (
+  <Stack.Navigator
+    screenOptions={{
+      headerStyle: { backgroundColor: '#6200EE' },
+      headerTintColor: '#fff',
+      headerTitleStyle: { fontWeight: 'bold' },
+    }}
+  >
+    <Stack.Screen
+      name="CalendarMain"
+      component={CalendarScreen}
+      options={{ title: 'Calendar' }}
     />
   </Stack.Navigator>
 );
@@ -102,6 +119,8 @@ export const RootNavigator = () => (
           iconName = focused ? 'chart-box' : 'chart-box-outline';
         } else if (route.name === 'QuickAdd') {
           iconName = focused ? 'plus-circle' : 'plus-circle-outline';
+        } else if (route.name === 'Calendar') {
+          iconName = focused ? 'calendar' : 'calendar-outline';
         } else if (route.name === 'Recurring') {
           iconName = focused ? 'repeat' : 'repeat';
         } else if (route.name === 'Goals') {
@@ -121,6 +140,7 @@ export const RootNavigator = () => (
   >
     <Tab.Screen name="Dashboard" component={DashboardStack} />
     <Tab.Screen name="QuickAdd" component={QuickAddStack} />
+    <Tab.Screen name="Calendar" component={CalendarStack} />
     <Tab.Screen name="Recurring" component={RecurringStack} />
     <Tab.Screen name="Goals" component={GoalsStack} />
     <Tab.Screen name="Settings" component={SettingsStack} />

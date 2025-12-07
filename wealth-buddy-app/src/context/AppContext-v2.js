@@ -17,6 +17,13 @@ export const AppProvider = ({ children }) => {
     initDb();
   }, []);
 
+  useEffect(() => {
+    // Reload data when month changes
+    if (!loading) {
+      loadAll();
+    }
+  }, [currentMonth]);
+
   const initDb = async () => {
     try {
       console.log('🔄 Initializing database...');
@@ -59,7 +66,16 @@ export const AppProvider = ({ children }) => {
       setGoals(goalsData);
 
       if (userData) {
-        const alloc = db.calculateAllocation(userData);
+        // Calculate actual income from transactions (if any) or use salary
+        const year = currentMonth.getFullYear();
+        const month = currentMonth.getMonth() + 1;
+        const monthTransactions = await db.getTransactions(year, month);
+        const actualIncome = monthTransactions
+          .filter(t => t.amount > 0)
+          .reduce((sum, t) => sum + (t.amount || 0), 0) || userData.salary || 0;
+        
+        // Calculate allocation based on actual income
+        const alloc = db.calculateAllocation({ ...userData, salary: actualIncome });
         console.log('✓ Allocation calculated:', alloc);
         // Ensure all allocation values are numbers
         setAllocation({
@@ -77,11 +93,61 @@ export const AppProvider = ({ children }) => {
   const addTransaction = async (categoryId, amount, date, method = 'card', notes = '') => {
     try {
       const success = await db.addTransaction(categoryId, amount, date, method, notes);
-      if (success) await loadAll();
+      if (success) {
+        await loadAll();
+        // Auto-update goals based on savings from income transactions
+        await updateGoalsFromSavings();
+      }
       return success;
     } catch (error) {
       console.error('❌ Error adding transaction:', error);
       return false;
+    }
+  };
+
+  const updateGoalsFromSavings = async () => {
+    try {
+      const year = currentMonth.getFullYear();
+      const month = currentMonth.getMonth() + 1;
+      const monthTransactions = await db.getTransactions(year, month);
+      const allGoals = await db.getGoals();
+      
+      if (allGoals.length === 0) return;
+
+      // Calculate net savings (income - expenses) for this month
+      const totalIncome = monthTransactions
+        .filter(t => t.amount > 0)
+        .reduce((sum, t) => sum + (t.amount || 0), 0);
+      
+      const totalExpenses = monthTransactions
+        .filter(t => t.amount < 0)
+        .reduce((sum, t) => sum + Math.abs(t.amount || 0), 0);
+
+      const netSavings = totalIncome - totalExpenses;
+      
+      // If we have positive savings, distribute to goals proportionally
+      if (netSavings > 0 && user) {
+        const savingsPercent = (user.savingsPercent || 15) / 100;
+        const savingsAmount = netSavings * savingsPercent;
+        const totalGoalTargets = allGoals.reduce((sum, g) => sum + (g.target || 0), 0);
+        
+        if (totalGoalTargets > 0 && savingsAmount > 0) {
+          // Distribute savings proportionally to goals
+          for (const goal of allGoals) {
+            const goalShare = (goal.target / totalGoalTargets) * savingsAmount;
+            const newCurrent = Math.min((goal.current || 0) + goalShare, goal.target);
+            
+            // Only update if there's a meaningful change
+            if (Math.abs(newCurrent - (goal.current || 0)) > 0.01) {
+              await db.saveGoal(goal.name, goal.target, newCurrent, goal.deadline);
+            }
+          }
+          // Reload to show updated goals
+          await loadAll();
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error updating goals from savings:', error);
     }
   };
 
