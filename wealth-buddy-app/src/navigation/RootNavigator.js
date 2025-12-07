@@ -6,7 +6,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import DashboardScreen from '../screens/DashboardScreen-modern';
 import QuickAddScreen from '../screens/QuickAddScreen';
 import CalendarScreen from '../screens/CalendarScreen';
-import RecurringScreen from '../screens/RecurringScreen-minimal';
+import RecurringScreen from '../screens/RecurringScreen';
 import GoalsScreen from '../screens/GoalsScreen';
 import SettingsScreen from '../screens/SettingsScreen-minimal';
 

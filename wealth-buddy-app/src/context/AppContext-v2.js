@@ -173,6 +173,17 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const updateRecurring = async (id, categoryId, amount, frequency, name) => {
+    try {
+      const success = await db.updateRecurring(id, categoryId, amount, frequency, name);
+      if (success) await loadAll();
+      return success;
+    } catch (error) {
+      console.error('❌ Error updating recurring:', error);
+      return false;
+    }
+  };
+
   const deleteRecurring = async (id) => {
     try {
       const success = await db.deleteRecurring(id);
@@ -236,6 +247,7 @@ export const AppProvider = ({ children }) => {
     addTransaction,
     deleteTransaction,
     addRecurring,
+    updateRecurring,
     deleteRecurring,
     saveGoal,
     deleteGoal,

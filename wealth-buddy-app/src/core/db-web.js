@@ -269,6 +269,23 @@ export async function addRecurring(categoryId, amount, frequency, name) {
   }
 }
 
+// Update recurring
+export async function updateRecurring(id, categoryId, amount, frequency, name) {
+  try {
+    const recurring = getStorage(STORAGE_KEYS.recurring);
+    const updated = recurring.map(r => 
+      Number(r.id) === Number(id)
+        ? { ...r, categoryId: Number(categoryId), amount: Number(amount), frequency: String(frequency), name: String(name) }
+        : r
+    );
+    setStorage(STORAGE_KEYS.recurring, updated);
+    return true;
+  } catch (error) {
+    console.error('❌ Error updating recurring:', error);
+    return false;
+  }
+}
+
 // Delete recurring
 export async function deleteRecurring(id) {
   try {
