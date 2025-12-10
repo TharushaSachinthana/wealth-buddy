@@ -1,6 +1,6 @@
 # Wealth Buddy - Your Personal Finance Companion 💰
 
-![App Banner](assets/screenshots/dashboard.png)
+![App Banner](wealth-buddy-app/assets/screenshots/dashboard.png)
 
 Wealth Buddy is a sophisticated, modern personal finance application designed to make expense tracking and budgeting effortless and beautiful. Built with React Native and Expo, it features a stunning dark theme with glassmorphism effects, neon accents, and fluid animations.
 
@@ -28,7 +28,7 @@ Wealth Buddy is a sophisticated, modern personal finance application designed to
 
 | Dashboard | Tab Bar & Navigation |
 |:---:|:---:|
-| <img src="assets/screenshots/dashboard.png" width="300" /> | <img src="assets/screenshots/tab_bar.png" width="300" /> |
+| <img src="wealth-buddy-app/assets/screenshots/dashboard.png" width="300" /> | <img src="wealth-buddy-app/assets/screenshots/tab_bar.png" width="300" /> |
 | *Visualize your income & expenses* | *Clean, unified navigation* |
 
 ## 🛠️ Installation & Setup
@@ -63,7 +63,7 @@ Wealth Buddy is a sophisticated, modern personal finance application designed to
 
 ## 📖 Documentation
 
-For a deep dive into the architecture, database schema, and code structure, please refer to the **[Developer Guide](DEVELOPER_GUIDE.md)**.
+For a deep dive into the architecture, database schema, and code structure, please refer to the **[Developer Guide](wealth-buddy-app/DEVELOPER_GUIDE.md)**.
 
 ## 🤝 Contributing
 
