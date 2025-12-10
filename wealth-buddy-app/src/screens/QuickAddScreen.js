@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import {
   Button,
   TextInput,
@@ -44,6 +45,7 @@ const CategoryButton = ({ category, selected, onPress }) => {
 
 const QuickAddScreen = () => {
   const { categories, addTransaction, currentMonth } = useApp();
+  const navigation = useNavigation();
   const [type, setType] = useState('expense');
   const [amount, setAmount] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -90,6 +92,7 @@ const QuickAddScreen = () => {
           setSelectedCategory(null);
           setNotes('');
           setMethod('card');
+          navigation.navigate('Dashboard');
         }, 1500);
       } else {
         Alert.alert('Error', 'Failed to add transaction');

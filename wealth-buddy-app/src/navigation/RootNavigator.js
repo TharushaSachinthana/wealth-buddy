@@ -94,13 +94,14 @@ const SettingsStack = () => (
 );
 
 // Custom tab bar button with glow effect
+// Custom tab bar button with glow effect
 const TabIcon = ({ focused, color, iconName, size }) => {
   return (
     <View style={[styles.tabIconContainer, focused && styles.tabIconFocused]}>
       <MaterialCommunityIcons
         name={iconName}
-        size={focused ? size + 2 : size}
-        color={focused ? colors.primary.main : colors.text.muted}
+        size={24}
+        color={color}
       />
     </View>
   );
@@ -148,7 +149,7 @@ export const RootNavigator = () => (
           <View style={[styles.addButton, focused && styles.addButtonFocused]}>
             <MaterialCommunityIcons
               name="plus"
-              size={28}
+              size={24}
               color={colors.text.primary}
             />
           </View>
@@ -174,9 +175,9 @@ const styles = StyleSheet.create({
     ...shadows.md,
   },
   tabBarLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '600',
-    marginTop: 4,
+    marginBottom: 4,
   },
   tabBarItem: {
     paddingVertical: 4,
@@ -191,13 +192,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary.glow,
   },
   addButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: colors.primary.main,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -20,
     ...shadows.glow(colors.primary.main),
   },
   addButtonFocused: {
