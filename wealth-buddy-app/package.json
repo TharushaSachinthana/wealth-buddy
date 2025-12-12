@@ -16,6 +16,7 @@
     "@react-navigation/native": "^6.1.17",
     "@react-navigation/native-stack": "^6.9.18",
     "expo": "^54.0.0",
+    "expo-linear-gradient": "^15.0.8",
     "expo-sqlite": "^14.0.1",
     "react": "18.3.1",
     "react-dom": "^18.3.1",
@@ -30,7 +31,8 @@
   },
   "devDependencies": {
     "@babel/core": "^7.23.0",
-    "@types/react": "~18.2.45"
+    "@types/react": "~18.2.45",
+    "typescript": "~5.9.2"
   },
   "private": true
 }

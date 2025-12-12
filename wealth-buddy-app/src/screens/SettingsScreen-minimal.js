@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext-v2';
 import { colors, spacing, borderRadius, shadows, cardStyles } from '../theme';
+import Logo from '../components/Logo';
 
 export default function SettingsScreen() {
   const { user, goals } = useApp();
@@ -16,6 +17,9 @@ export default function SettingsScreen() {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Profile Header */}
       <View style={styles.profileCard}>
+        <View style={styles.logoContainer}>
+          <Logo size={56} animated={true} showGlow={true} />
+        </View>
         <View style={styles.avatarContainer}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{getInitials(user?.name)}</Text>
@@ -243,6 +247,9 @@ const styles = StyleSheet.create({
     margin: spacing.lg,
     alignItems: 'center',
     paddingVertical: spacing.xxxl,
+  },
+  logoContainer: {
+    marginBottom: spacing.md,
   },
   avatarContainer: {
     position: 'relative',

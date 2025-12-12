@@ -69,13 +69,41 @@ export const colors = {
 
     // Gradient presets
     gradients: {
-        header: ['#667eea', '#764ba2'],
-        card: ['rgba(26, 35, 50, 0.9)', 'rgba(15, 22, 36, 0.95)'],
-        income: ['#00E676', '#00B85C'],
-        expense: ['#FF5252', '#CC4141'],
+        header: ['#0F1624', '#1A2332'],
+        card: ['rgba(255, 255, 255, 0.05)', 'rgba(255, 255, 255, 0.05)'], // Glass effect
+        income: ['#00E676', '#00E676'],
+        expense: ['#FF5252', '#FF5252'],
         primary: ['#00D9FF', '#00A3CC'],
         purple: ['#A855F7', '#7C3AED'],
         sunset: ['#F97316', '#EC4899'],
+        ocean: ['#00D9FF', '#3B82F6', '#A855F7'],
+        success: ['#00E676', '#14B8A6'],
+        danger: ['#FF5252', '#F97316'],
+        premium: ['#FFD700', '#FFA500', '#FF6B6B'],
+        neon: ['#00D9FF', '#00E676', '#FFB300'],
+        background: ['#0F1624', '#1A2332', '#0F1624'], // Main background
+        button: ['#00D9FF', '#A855F7'], // Add button gradient
+        balance: ['rgba(0, 217, 255, 0.2)', 'rgba(168, 85, 247, 0.2)'], // Balance card gradient
+    },
+
+    // New Design Specific Colors
+    newDesign: {
+        background: '#0F1624',
+        surface: '#1A2332',
+        cyan: '#00D9FF',
+        purple: '#A855F7',
+        pink: '#EC4899',
+        green: '#00E676',
+        red: '#FF5252',
+        glassBorder: 'rgba(255, 255, 255, 0.1)',
+        textMuted: 'rgba(255, 255, 255, 0.6)',
+    },
+
+    // Logo colors
+    logo: {
+        primary: '#00D9FF',
+        glow: 'rgba(0, 217, 255, 0.4)',
+        shadow: 'rgba(0, 217, 255, 0.6)',
     },
 };
 
@@ -182,6 +210,15 @@ export const cardStyles = {
         padding: spacing.xl,
         ...shadows.md,
     },
+    glassEnhanced: {
+        backgroundColor: 'rgba(26, 35, 50, 0.6)',
+        borderRadius: borderRadius.xl,
+        borderWidth: 1,
+        borderColor: colors.border.medium,
+        padding: spacing.xl,
+        ...shadows.lg,
+        backdropFilter: 'blur(10px)',
+    },
     solid: {
         backgroundColor: colors.background.cardSolid,
         borderRadius: borderRadius.xl,
@@ -197,6 +234,14 @@ export const cardStyles = {
         borderColor: colors.border.light,
         padding: spacing.lg,
         ...shadows.lg,
+    },
+    premium: {
+        backgroundColor: colors.background.glass,
+        borderRadius: borderRadius.xxl,
+        borderWidth: 2,
+        borderColor: colors.primary.main + '30',
+        padding: spacing.xl,
+        ...shadows.neon(colors.primary.main),
     },
 };
 

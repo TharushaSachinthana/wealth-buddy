@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet, Platform, TouchableOpacity } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors, shadows, borderRadius } from '../theme';
 
 import DashboardScreen from '../screens/DashboardScreen-modern';
@@ -38,7 +39,7 @@ const DashboardStack = () => (
     <Stack.Screen
       name="DashboardMain"
       component={DashboardScreen}
-      options={{ title: 'Dashboard' }}
+      options={{ title: 'Dashboard', headerShown: false }}
     />
   </Stack.Navigator>
 );
@@ -93,8 +94,6 @@ const SettingsStack = () => (
   </Stack.Navigator>
 );
 
-// Custom tab bar button with glow effect
-// Custom tab bar button with glow effect
 const TabIcon = ({ focused, color, iconName, size }) => {
   return (
     <View style={[styles.tabIconContainer, focused && styles.tabIconFocused]}>
@@ -137,42 +136,67 @@ export const RootNavigator = () => (
       tabBarStyle: styles.tabBar,
       tabBarLabelStyle: styles.tabBarLabel,
       tabBarItemStyle: styles.tabBarItem,
+      tabBarBackground: () => (
+        <View style={styles.tabBackground} />
+      ),
     })}
   >
     <Tab.Screen name="Dashboard" component={DashboardStack} />
+    <Tab.Screen name="Calendar" component={CalendarStack} />
     <Tab.Screen
       name="QuickAdd"
       component={QuickAddStack}
       options={{
         tabBarLabel: 'Add',
         tabBarIcon: ({ focused }) => (
-          <View style={[styles.addButton, focused && styles.addButtonFocused]}>
-            <MaterialCommunityIcons
-              name="plus"
-              size={24}
-              color={colors.text.primary}
-            />
+          <View style={[styles.addButtonContainer, focused && styles.addButtonFocused]}>
+            <LinearGradient
+              colors={colors.gradients.button}
+              style={styles.addButton}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <MaterialCommunityIcons
+                name="plus"
+                size={30}
+                color="#fff"
+              />
+            </LinearGradient>
           </View>
         ),
       }}
     />
-    <Tab.Screen name="Calendar" component={CalendarStack} />
     <Tab.Screen name="Recurring" component={RecurringStack} />
     <Tab.Screen name="Goals" component={GoalsStack} />
-    <Tab.Screen name="Settings" component={SettingsStack} />
+    {/* Settings is accessed via dashboard header in new design, but keeping tab for fallback/consistency */}
+    <Tab.Screen
+      name="Settings"
+      component={SettingsStack}
+      options={{
+        tabBarItemStyle: { display: 'none' } // Hidden as requested by design implies profile access
+      }}
+    />
   </Tab.Navigator>
 );
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: colors.background.secondary,
+    backgroundColor: 'transparent',
+    borderTopWidth: 0,
+    elevation: 0,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: Platform.OS === 'web' ? 80 : 90,
+    paddingTop: 10,
+    paddingBottom: Platform.OS === 'web' ? 10 : 30,
+  },
+  tabBackground: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(15, 22, 36, 0.95)', // Deep dark with slight opacity
     borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-    height: Platform.OS === 'web' ? 70 : 85,
-    paddingTop: 8,
-    paddingBottom: Platform.OS === 'web' ? 8 : 24,
-    paddingHorizontal: 8,
-    ...shadows.md,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
   },
   tabBarLabel: {
     fontSize: 11,
@@ -189,19 +213,27 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.lg,
   },
   tabIconFocused: {
-    backgroundColor: colors.primary.glow,
+    // backgroundColor: 'rgba(0, 217, 255, 0.1)', // Subtle glow behind icon
+  },
+  addButtonContainer: {
+    top: -20,
+    shadowColor: colors.primary.main,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
   },
   addButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary.main,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadows.glow(colors.primary.main),
   },
   addButtonFocused: {
-    backgroundColor: colors.primary.light,
     transform: [{ scale: 1.05 }],
   },
 });
